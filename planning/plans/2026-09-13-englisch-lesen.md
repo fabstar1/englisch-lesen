@@ -3730,3 +3730,13 @@ Dazu die manuelle Prüfliste aus dem README nennen.
 - **Spec-Abdeckung:** Abschnitt 3 Ordner → Tasks 1, 14, 16, 19. Abschnitt 4 Formate → Tasks 4, 5, 9. Abschnitt 5 Tokenizer → Task 2. Abschnitt 6 Web-App → Tasks 14, 15, 18 (6.4 Schrift → Task 13, Icons → Task 12). Abschnitt 7 Werkzeuge → Tasks 6 bis 13. Abschnitt 8 Verschlüsselung → Tasks 3, 9, 10. Abschnitt 9 Skill → Task 16. Abschnitt 10 Fehler → Tasks 8, 9, 15. Abschnitt 11 Tests → jede Task, manuelle Liste → Tasks 18, 19. Abschnitt 12 Veröffentlichung → Tasks 17, 19, 20. Abschnitt 13 bewusst nicht enthalten.
 - **Namen über Tasks hinweg:** `segment`, `annotate`, `keysOf`, `countWords`, `normalizeKey` (Task 2) werden in Tasks 5, 15 so benutzt. `deriveKey`, `encryptJson`, `decryptJson`, `exportKey`, `importKey`, `toBase64`, `randomBytes`, `DEFAULT_ITERATIONS` (Task 3) in Tasks 9, 10, 15. `paths`, `readJson`, `writeJson`, `loadBaseWords`, `has`, `checkGloss`, `validateText`, `chunk`, `readPassword`, `ROOT` (Task 5) in Tasks 6 bis 12. `localStorage`-Schlüssel `reader.key`, `reader.theme`, `reader.fontSize`, `reader.pos.<id>` (Task 15) entsprechen Spec 6.3. Klassen `.w`, `.phrase`, `.active`, `.card`, `.gate`, `.msg`, `.error`, `.popup`, `.pop-*` in Tasks 14, 15 und 18 identisch.
 - **Testsumme:** Task 1: 1, Task 2: 15, Task 3: 9, Task 4: 4, Task 5: 12, Task 6: 5, Task 7: 4, Task 8: 5, Task 9: 3, Task 10: 1, Task 11: 1, Task 12: 2 = 62. Task 20 Schritt 1 erwartet daher `# pass 62`.
+
+---
+
+## Nachtrag aus der Umsetzung (2026-09-13)
+
+Drei Dinge kamen beim Bauen dazu oder wurden korrigiert. Sie stehen so im Code und im README.
+
+1. **`randomBytes` füllt blockweise** (`docs/crypto.js`). `crypto.getRandomValues` füllt laut Web-Crypto-Spezifikation höchstens 65536 Byte je Aufruf und wirft darüber `QuotaExceededError`. Für Salt und IV spielt das keine Rolle, aber die Funktion wäre eine Falle geblieben.
+2. **`npm test` braucht ein Glob-Muster.** `node --test tests/` deutet das Verzeichnis als Modulpfad und schlägt fehl; das Skript verwendet `node --test "tests/**/*.test.mjs"`.
+3. **Schutz gegen Datenverlust: Sperre in `encrypt.mjs` und neues `tools/restore.mjs`.** `library/` liegt nicht im Repo. Auf einem frischen Klon ist es leer, und `encrypt.mjs` hätte alle veröffentlichten Texte als verwaist gelöscht. Jetzt bricht es in diesem Fall ab und verweist auf `npm run restore`, das die Klartexte aus den verschlüsselten Dateien zurückholt (byteidentisch geprüft). Sechs Tests in `tests/restore.test.mjs` decken beide Seiten ab; die Gesamtzahl der Tests liegt damit bei 68 statt 62.
