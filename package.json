@@ -1,0 +1,20 @@
+{
+  "name": "englisch-lesen",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Englisch lernen durch Lesen: Reader mit Wort-Popups",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "setup": "node tools/setup.mjs",
+    "words": "node tools/words.mjs",
+    "merge": "node tools/merge.mjs",
+    "validate": "node tools/validate.mjs",
+    "encrypt": "node tools/encrypt.mjs",
+    "serve": "node tools/serve.mjs",
+    "icons": "node tools/make-icons.mjs",
+    "fonts": "node tools/fetch-fonts.mjs",
+    "publish": "node tools/encrypt.mjs && git add docs/texts && git commit -m \"Texte aktualisiert\" && git push"
+  }
+}
