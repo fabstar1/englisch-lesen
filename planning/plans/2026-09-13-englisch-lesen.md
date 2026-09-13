@@ -453,7 +453,10 @@ export function fromBase64(b64) {
 }
 
 export function randomBytes(n) {
-  return globalThis.crypto.getRandomValues(new Uint8Array(n));
+  // getRandomValues füllt laut Web-Crypto-Spezifikation höchstens 65536 Byte je Aufruf.
+  const out = new Uint8Array(n);
+  for (let i = 0; i < n; i += 65536) globalThis.crypto.getRandomValues(out.subarray(i, Math.min(i + 65536, n)));
+  return out;
 }
 
 /** Leitet aus Passwort und Salt (Base64) einen exportierbaren AES-GCM-Schlüssel ab. */
