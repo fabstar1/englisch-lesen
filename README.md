@@ -53,11 +53,20 @@ Danach auf jedem Gerät unten in der Bibliothek „Abmelden" wählen und neu anm
 
 Die Klartexte liegen in `library/<id>.json`. Einträge dort ändern, dann `npm run encrypt` und pushen. Prüfen mit `node tools/validate.mjs library/<id>.json`.
 
+## Auf einem zweiten Rechner arbeiten
+
+`library/` liegt bewusst nicht im Repo, ein frischer Klon hat also keine Klartexte. Hol sie dir einmalig aus den verschlüsselten Dateien zurück:
+
+    npm run setup      # dasselbe Passwort wie bisher eingeben
+    npm run restore
+
+Danach ist `library/` wieder vollständig. Solange die Klartexte fehlen, weigert sich `npm run encrypt` und löscht nichts. Das ist Absicht: ohne diese Sperre würde es die veröffentlichten Texte für verwaist halten und entfernen.
+
 ## Ordner
 
 - `docs/` die Website (wird veröffentlicht), darin `texts/` mit den verschlüsselten Texten
 - `library/` Klartexte (bleiben lokal)
-- `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `serve`, `icons`, `fonts`
+- `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `restore`, `serve`, `icons`, `fonts`
 - `.claude/skills/add-text/` der Skill
 - `planning/` Spezifikation und Umsetzungsplan
 

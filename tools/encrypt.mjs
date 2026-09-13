@@ -66,8 +66,19 @@ for (const name of files) {
   }
 }
 
-for (const name of readdirSync(p.texts)) {
-  if (!name.endsWith(".json") || name === "index.json" || name === "salt.json") continue;
+const published = readdirSync(p.texts).filter(
+  (n) => n.endsWith(".json") && n !== "index.json" && n !== "salt.json",
+);
+
+// Schutz vor Datenverlust: library/ ist nicht im Repo. Auf einem frischen Klon ist es leer,
+// und ohne diese Sperre würden alle veröffentlichten Texte als verwaist gelöscht.
+if (files.length === 0 && published.length > 0) {
+  console.error(`library/ ist leer, aber ${published.length} Texte sind veröffentlicht.`);
+  console.error("Es wird nichts gelöscht. Klartexte zurückholen mit: npm run restore");
+  process.exit(1);
+}
+
+for (const name of published) {
   const id = basename(name, ".json");
   if (!ids.has(id)) {
     unlinkSync(join(p.texts, name));
