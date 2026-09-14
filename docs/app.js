@@ -34,14 +34,13 @@ const state = {
   texts: new Map(), // id -> entschlüsselter Text (nur im Speicher)
   fontSize: 19,
   current: null, // { id, title, glosses } in der Leseansicht
-  popup: null, // { span, pinned }
+  popup: null, // { span } des gerade geöffneten Popups
   config: null, // docs/config.json, fehlt = kein Hinzufügen möglich
   queue: [], // entschlüsselte Warteschlangen-Einträge, je { file, kind, ... }
 };
 
 const has = (obj, key) => obj !== null && typeof obj === "object" && Object.hasOwn(obj, key);
 const isNarrow = () => matchMedia("(max-width: 699px)").matches;
-const hasHover = () => matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 // ---------- Hilfen ----------
 
@@ -487,9 +486,7 @@ function restoreScroll(id) {
 }
 
 // ---------- Popup ----------
-
-let hoverTimer = 0;
-let leaveTimer = 0;
+// Öffnet nur per Klick oder Tippen, auf allen Geräten gleich. Kein Hover.
 
 function lookup(key) {
   if (state.current && has(state.current.glosses, key)) return state.current.glosses[key];
@@ -527,11 +524,11 @@ function positionPopup(span) {
   popup.style.top = `${Math.round(top)}px`;
 }
 
-function openPopup(span, pinned) {
+function openPopup(span) {
   if (state.popup && state.popup.span !== span) state.popup.span.classList.remove("active");
   fillPopup(span);
   span.classList.add("active");
-  state.popup = { span, pinned };
+  state.popup = { span };
   popup.hidden = false;
   if (isNarrow()) {
     popup.style.left = "";
@@ -542,8 +539,6 @@ function openPopup(span, pinned) {
 }
 
 function closePopup() {
-  clearTimeout(hoverTimer);
-  clearTimeout(leaveTimer);
   if (!state.popup) return;
   state.popup.span.classList.remove("active");
   state.popup = null;
@@ -554,11 +549,12 @@ main.addEventListener("click", (ev) => {
   const span = ev.target.closest(".w");
   if (!span) return;
   ev.stopPropagation();
-  if (state.popup && state.popup.span === span && state.popup.pinned) {
+  // Dasselbe Wort noch einmal antippen schließt das Popup.
+  if (state.popup && state.popup.span === span) {
     closePopup();
     return;
   }
-  openPopup(span, true);
+  openPopup(span);
 });
 
 document.addEventListener("click", (ev) => {
@@ -569,25 +565,6 @@ document.addEventListener("click", (ev) => {
 document.addEventListener("keydown", (ev) => {
   if (ev.key === "Escape") closePopup();
 });
-
-if (hasHover()) {
-  main.addEventListener("mouseover", (ev) => {
-    const span = ev.target.closest(".w");
-    if (!span || (state.popup && state.popup.pinned)) return;
-    clearTimeout(hoverTimer);
-    clearTimeout(leaveTimer);
-    hoverTimer = setTimeout(() => openPopup(span, false), 250);
-  });
-  main.addEventListener("mouseout", (ev) => {
-    if (!ev.target.closest(".w")) return;
-    clearTimeout(hoverTimer);
-    if (state.popup && !state.popup.pinned) leaveTimer = setTimeout(closePopup, 150);
-  });
-  popup.addEventListener("mouseenter", () => clearTimeout(leaveTimer));
-  popup.addEventListener("mouseleave", () => {
-    if (state.popup && !state.popup.pinned) closePopup();
-  });
-}
 
 window.addEventListener("resize", () => {
   if (state.popup && !isNarrow()) positionPopup(state.popup.span);

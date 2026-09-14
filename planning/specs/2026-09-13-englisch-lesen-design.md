@@ -160,7 +160,7 @@ Hash-Routing: `#/` Bibliothek, `#/t/<id>` Leseansicht. Zurück-Taste des Browser
 
 - Schmale Bildschirme (Breite unter 700 px): ein Blatt am unteren Rand, volle Breite, Rand für den Home-Balken (`env(safe-area-inset-bottom)`), maximal 45 % der Höhe, scrollbar, Schließen-Knopf. Tippen außerhalb schließt.
 - Breite Bildschirme: ein Kästchen (max. 360 px) neben dem Wort, oberhalb oder unterhalb je nach Platz, innerhalb des sichtbaren Bereichs.
-- Geräte mit Maus (`@media (pointer: fine)`): Verweilen mit der Maus zeigt das Kästchen nach 250 ms und blendet es beim Verlassen aus; ein Klick hält es fest, bis erneut geklickt, außerhalb geklickt oder Escape gedrückt wird.
+- Das Popup öffnet nur per Klick oder Tippen, auf allen Geräten gleich. Es bleibt offen, bis erneut auf dasselbe Wort, daneben oder auf Escape geklickt wird. Bewusst kein Öffnen beim Überfahren mit der Maus (auf Wunsch des Nutzers am 2026-09-14 entfernt), weil sonst beim Lesen ständig ungewollt Popups aufgehen.
 - Inhalt in dieser Reihenfolge: Wort wie im Text (bei Wendungen die ganze Wendung), daneben Grundform in Klammern falls vorhanden, Wortart als Badge, Übersetzung groß, Erklärung kleiner. Ohne Eintrag: das Wort und „Keine Übersetzung gespeichert."
 - Das angetippte Wort ist hervorgehoben, solange das Popup offen ist. Nur ein Popup zugleich.
 

@@ -99,4 +99,4 @@ Danach ist `library/` wieder vollständig. Solange die Klartexte fehlen, weigert
 
 ## Manuelle Prüfliste
 
-iPhone Safari, iPad Safari, Desktop Chrome; jeweils Hell und Dunkel: Passwort-Ansicht, Bibliothek, Text öffnen, Wort tippen (Blatt bzw. Kästchen), Wendung tippen, Maus-Hover am Desktop, A−/A+, Scrollposition nach Zurück und erneutem Öffnen, Zurück-Taste des Browsers, „Zum Home-Bildschirm", Abmelden.
+iPhone Safari, iPad Safari, Desktop Chrome; jeweils Hell und Dunkel: Passwort-Ansicht, Bibliothek, Text öffnen, Wort tippen (Blatt bzw. Kästchen), Wendung tippen, zweites Tippen schließt, Escape schließt, A−/A+, Scrollposition nach Zurück und erneutem Öffnen, Zurück-Taste des Browsers, „Zum Home-Bildschirm", Abmelden.
