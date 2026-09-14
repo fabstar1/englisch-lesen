@@ -5,7 +5,24 @@ description: Legt einen englischen Text für den Reader an (aus URL, Datei oder 
 
 # Text hinzufügen
 
-Eingabe (Argument oder Nachricht des Nutzers): eine URL, ein Dateipfad oder direkt eingefügter Text. Fehlt alles, nachfragen. Alle Befehle aus dem Projektstamm ausführen. Datum = heute als JJJJ-MM-TT.
+Eingabe (Argument oder Nachricht des Nutzers): eine URL, ein Dateipfad oder direkt eingefügter Text. Alle Befehle aus dem Projektstamm ausführen. Datum = heute als JJJJ-MM-TT.
+
+**Ohne Argument: die Warteschlange abarbeiten** (siehe unten). Nur wenn die Warteschlange leer ist und kein Argument kam, nachfragen, was hinzugefügt werden soll.
+
+## Warteschlange abarbeiten (Aufruf ohne Argument)
+
+Die Seite kann unterwegs Links und Texte in `queue/` ablegen, verschlüsselt. So werden sie verarbeitet:
+
+1. `git pull` (die Einträge kommen vom Handy über GitHub).
+2. `node tools/queue.mjs list` liefert ein JSON-Array. Leer: dem Nutzer sagen, dass nichts wartet, und aufhören.
+3. Für jeden Eintrag den Ablauf unten ausführen:
+   - `kind: "url"` wie eine URL behandeln (Schritt 1 „Beschaffen").
+   - `kind: "text"` wie eingefügten Text behandeln. `title` als Titel nehmen; ist er leer, einen passenden aus dem Inhalt bilden. `body` sind die Absätze, getrennt durch Leerzeilen.
+   - `addedAt` ist der Zeitpunkt der Erfassung; für `addedAt` im Text trotzdem das heutige Datum verwenden.
+4. Nach jedem fertig verschlüsselten Text `node tools/queue.mjs clear <datei>` aufrufen, damit ein Abbruch nicht alles wiederholt.
+5. Am Ende einmal berichten (wie viele Texte, welche Titel) und fragen: „Committen und pushen?" Bei Ja: `git add docs/texts queue && git commit -m "Warteschlange verarbeitet: <n> Texte" && git push`.
+
+Scheitert ein einzelner Eintrag (Paywall, tote URL), diesen Eintrag stehen lassen, den Grund nennen und mit den übrigen weitermachen.
 
 ## Ablauf
 

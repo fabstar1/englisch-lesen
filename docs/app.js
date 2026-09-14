@@ -1,6 +1,8 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
 import { segment, annotate } from "./tokenizer.js";
 import { deriveKey, decryptJson, exportKey, importKey } from "./crypto.js";
+import { listQueue, fetchQueueFile } from "./github.js";
+import { openAddSheet } from "./add.js";
 
 const bar = document.getElementById("bar");
 const main = document.getElementById("main");
@@ -33,6 +35,8 @@ const state = {
   fontSize: 19,
   current: null, // { id, title, glosses } in der Leseansicht
   popup: null, // { span, pinned }
+  config: null, // docs/config.json, fehlt = kein Hinzufügen möglich
+  queue: [], // entschlüsselte Warteschlangen-Einträge, je { file, kind, ... }
 };
 
 const has = (obj, key) => obj !== null && typeof obj === "object" && Object.hasOwn(obj, key);
@@ -137,7 +141,28 @@ function renderBar() {
       themeBtn,
     );
   } else {
-    bar.append(el("span", { class: "title", text: "Englisch lesen" }), themeBtn);
+    bar.append(el("span", { class: "title", text: "Englisch lesen" }));
+    if (state.config && state.config.repo) {
+      bar.append(el("button", {
+        class: "add",
+        "aria-label": "Text oder Link hinzufügen",
+        title: "Hinzufügen",
+        text: "+",
+        onclick: () => openAddSheet({
+          key: state.key,
+          config: state.config,
+          onDone: async (modus) => {
+            renderMessage(
+              modus === "url" ? "Link gespeichert." : "Text gespeichert.",
+              "Er steht jetzt in der Warteschlange. In Claude Code holt /add-text ihn ab und übersetzt ihn.",
+            );
+            await loadQueue();
+            setTimeout(() => { if (!state.current) renderLibrary(); }, 1400);
+          },
+        }),
+      }));
+    }
+    bar.append(themeBtn);
   }
 }
 
@@ -151,12 +176,14 @@ async function boot() {
     renderMessage("Web Crypto ist nicht verfügbar.", "Bitte die Seite über HTTPS oder localhost öffnen.");
     return;
   }
-  const [salt, indexFile, base] = await Promise.all([
+  const [salt, indexFile, base, config] = await Promise.all([
     fetchJson("texts/salt.json"),
     fetchJson("texts/index.json"),
     fetchJson("base-words.json"),
+    fetchJson("config.json"),
   ]);
   state.base = base || {};
+  state.config = config;
   if (!salt || !indexFile) {
     renderMessage("Noch keine Texte veröffentlicht.", "In Claude Code mit /add-text einen Text anlegen, dann npm run encrypt ausführen und pushen.");
     return;
@@ -180,6 +207,13 @@ async function boot() {
     return;
   }
   route();
+  refreshQueue();
+}
+
+/** Warteschlange nachladen und die Bibliothek auffrischen, falls sie gerade offen ist. */
+async function refreshQueue() {
+  await loadQueue();
+  if (!state.current && state.key) renderLibrary();
 }
 
 async function unlock(password) {
@@ -195,6 +229,7 @@ function logout() {
   state.key = null;
   state.index = null;
   state.texts.clear();
+  state.queue = [];
   if (location.hash !== "" && location.hash !== "#/") location.hash = "#/";
   renderPassword();
 }
@@ -217,6 +252,7 @@ function renderPassword(hint = "") {
       try {
         await unlock(input.value);
         route();
+        refreshQueue();
       } catch (e) {
         error.textContent = /Passwort/.test(e.message) ? "Falsches Passwort." : e.message;
         button.disabled = false;
@@ -252,9 +288,94 @@ function route() {
     return;
   }
   closePopup();
-  const m = location.hash.match(/^#\/t\/([A-Za-z0-9-]+)$/);
-  if (m) renderText(m[1]);
-  else renderLibrary();
+  const t = location.hash.match(/^#\/t\/([A-Za-z0-9-]+)$/);
+  if (t) return renderText(t[1]);
+  const q = location.hash.match(/^#\/q\/([A-Za-z0-9.-]+)$/);
+  if (q) return renderQueued(q[1]);
+  renderLibrary();
+}
+
+// ---------- Warteschlange ----------
+
+/** Holt die Warteschlange aus dem Repo und entschlüsselt sie. Fehler sind kein Drama. */
+async function loadQueue() {
+  if (!state.config || !state.config.repo || !state.key) {
+    state.queue = [];
+    return;
+  }
+  const dateien = await listQueue(state.config);
+  const eintraege = [];
+  for (const datei of dateien) {
+    try {
+      eintraege.push({ file: datei.name, ...(await decryptJson(state.key, await fetchQueueFile(datei))) });
+    } catch {
+      /* Eintrag überspringen, etwa nach einem Passwortwechsel */
+    }
+  }
+  state.queue = eintraege;
+}
+
+/** Absätze aus eingefügtem Text: an Leerzeilen trennen. */
+function bodyToParagraphs(body) {
+  return body
+    .split(/\n\s*\n/)
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .map((text) => ({ type: "p", text }));
+}
+
+function renderQueued(file) {
+  const eintrag = state.queue.find((e) => e.file === file);
+  if (!eintrag || eintrag.kind !== "text") {
+    main.className = "view";
+    main.replaceChildren(el("div", { class: "msg" }, [
+      el("p", { text: "Dieser Eintrag ist nicht lesbar." }),
+      el("p", {}, [el("a", { href: "#/", text: "Zurück zur Bibliothek" })]),
+    ]));
+    return;
+  }
+  const titel = eintrag.title || "Ohne Titel";
+  state.current = { id: `q/${file}`, title: titel, glosses: {} };
+  renderBar();
+  const paragraphs = bodyToParagraphs(eintrag.body);
+  main.className = "view";
+  main.replaceChildren(el("article", { class: "article" }, [
+    el("h1", { text: titel }),
+    el("div", { class: "meta byline" }, [
+      el("span", { class: "badge wartet", text: "noch nicht übersetzt" }),
+      el("span", { text: formatWords(paragraphs.reduce((n, p) => n + segment(p.text).filter((s) => s.type === "word").length, 0)) }),
+    ]),
+    el("p", { class: "hinweis", text: "Die Übersetzungen fehlen noch. Häufige Wörter kommen aus der Grundliste. In Claude Code holt /add-text den Text ab und übersetzt ihn vollständig." }),
+    ...paragraphs.map((p) => renderParagraph(p, () => false)),
+  ]));
+  restoreScroll(`q/${file}`);
+}
+
+/** Karten für die Warteschlange unterhalb der fertigen Texte. */
+function queueCards() {
+  if (!state.queue.length) return [];
+  const karten = state.queue.map((e) => {
+    if (e.kind === "text") {
+      const titel = e.title || "Ohne Titel";
+      return el("a", { class: "card wartend", href: `#/q/${e.file}` }, [
+        el("h2", { text: titel }),
+        el("div", { class: "meta" }, [
+          el("span", { class: "badge wartet", text: "noch nicht übersetzt" }),
+          el("span", { text: formatDate(e.addedAt.slice(0, 10)) }),
+        ]),
+        el("p", { text: e.body.replace(/\s+/g, " ").slice(0, 140) + (e.body.length > 140 ? "…" : "") }),
+      ]);
+    }
+    return el("div", { class: "card wartend" }, [
+      el("h2", { text: domainOf(e.url) }),
+      el("div", { class: "meta" }, [
+        el("span", { class: "badge wartet", text: "wartet auf Verarbeitung" }),
+        el("span", { text: formatDate(e.addedAt.slice(0, 10)) }),
+      ]),
+      el("p", { class: "url", text: e.url }),
+    ]);
+  });
+  return [el("h2", { class: "abschnitt", text: "Warteschlange" }), ...karten];
 }
 
 // ---------- Bibliothek ----------
@@ -275,9 +396,11 @@ function renderLibrary() {
     ]),
     t.summary ? el("p", { text: t.summary }) : null,
   ]));
+  const leer = cards.length === 0 && state.queue.length === 0;
   main.replaceChildren(
     el("h1", { text: "Bibliothek" }),
-    ...(cards.length ? cards : [el("p", { class: "msg", text: "Noch keine Texte. In Claude Code mit /add-text einen Text anlegen." })]),
+    ...(leer ? [el("p", { class: "msg", text: "Noch keine Texte. Tippe oben auf + oder lege in Claude Code mit /add-text einen an." })] : cards),
+    ...queueCards(),
     el("div", { class: "footer" }, [el("button", { class: "link-muted", onclick: logout, text: "Abmelden" })]),
   );
   window.scrollTo(0, 0);

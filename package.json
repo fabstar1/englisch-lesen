@@ -15,6 +15,7 @@
     "validate": "node tools/validate.mjs",
     "encrypt": "node tools/encrypt.mjs",
     "restore": "node tools/restore.mjs",
+    "queue": "node tools/queue.mjs",
     "serve": "node tools/serve.mjs",
     "icons": "node tools/make-icons.mjs",
     "fonts": "node tools/fetch-fonts.mjs",

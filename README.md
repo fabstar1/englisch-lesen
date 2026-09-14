@@ -2,7 +2,7 @@
 
 Englische Texte lesen und jedes Wort antippen: Ein Popup zeigt die deutsche Übersetzung, wie das Wort in diesem Text gemeint ist, dazu Grundform, Wortart und eine kurze Erklärung. Läuft als Website auf GitHub Pages, gut lesbar auf Handy, iPad und PC, mit Tag- und Nachtmodus.
 
-Texte werden hier in Claude Code angelegt (Skill `/add-text`) und passwortverschlüsselt veröffentlicht. Auf GitHub liegt nur Datensalat; die Seite entschlüsselt im Browser, nachdem du das Passwort einmal pro Gerät eingegeben hast.
+Texte kommen auf zwei Wegen hinein: unterwegs per **+** auf der Seite selbst, oder am PC in Claude Code mit `/add-text`. Übersetzt wird immer in Claude Code, das kostet nichts über dein Abo hinaus. Alles wird passwortverschlüsselt veröffentlicht; auf GitHub liegt nur Datensalat, und die Seite entschlüsselt im Browser, nachdem du das Passwort einmal pro Gerät eingegeben hast.
 
 ## Einmalige Einrichtung
 
@@ -25,11 +25,33 @@ Voraussetzungen: Node 22 oder neuer, git, ein GitHub-Konto.
 
 ## Text hinzufügen
 
-In Claude Code, im Projektordner:
+### Unterwegs, auf dem Handy
+
+In der Bibliothek oben auf **+** tippen. Dort entweder einen Link einfügen oder einen kopierten Text. Der Eintrag landet verschlüsselt in der Warteschlange. Ein eingefügter Text ist sofort lesbar, nur ohne die textspezifischen Übersetzungen.
+
+Beim ersten Mal fragt das Formular nach einem GitHub-Token. Du brauchst es einmal pro Gerät.
+
+1. [Fine-grained Token erstellen](https://github.com/settings/personal-access-tokens/new)
+2. Bei „Repository access" **Only select repositories** wählen und dieses Repository auswählen
+3. Unter „Permissions" → „Repository permissions" bei **Contents** auf **Read and write** stellen
+4. Ablaufdatum setzen, Token erzeugen, in das Formular einfügen
+
+Das Token liegt danach nur auf diesem Gerät. Wer es erbeutet, kann in dieses eine Repository schreiben, aber deine Texte nicht lesen (sie sind verschlüsselt) und an kein anderes Repository. Im Formular unten kannst du es wieder löschen.
+
+### Am PC, in Claude Code
+
+    /add-text
+
+ohne Argument holt alles aus der Warteschlange, übersetzt es und fragt am Ende, ob es pushen soll.
 
     /add-text https://beispiel.org/artikel
 
-oder `/add-text pfad/zur/datei.txt`, oder den Text direkt in die Nachricht einfügen. Claude holt den Text, übersetzt alle Wörter im Kontext, prüft die Datei, verschlüsselt sie und fragt am Ende, ob es committen und pushen soll. Ein längerer Artikel braucht einige Minuten. Danach erscheint der Text auf allen Geräten in der Bibliothek.
+geht weiterhin direkt, ebenso `/add-text pfad/zur/datei.txt` oder ein eingefügter Text. Ein längerer Artikel braucht einige Minuten.
+
+Warteschlange von Hand ansehen oder leeren:
+
+    npm run queue list
+    npm run queue clear --all
 
 Von Hand veröffentlichen:
 
@@ -64,9 +86,10 @@ Danach ist `library/` wieder vollständig. Solange die Klartexte fehlen, weigert
 
 ## Ordner
 
-- `docs/` die Website (wird veröffentlicht), darin `texts/` mit den verschlüsselten Texten
+- `docs/` die Website (wird veröffentlicht), darin `texts/` mit den verschlüsselten Texten und `config.json` mit dem Repo-Namen
 - `library/` Klartexte (bleiben lokal)
-- `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `restore`, `serve`, `icons`, `fonts`
+- `queue/` verschlüsselte Einträge vom Handy, die noch übersetzt werden müssen
+- `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `restore`, `queue`, `serve`, `icons`, `fonts`
 - `.claude/skills/add-text/` der Skill
 - `planning/` Spezifikation und Umsetzungsplan
 
