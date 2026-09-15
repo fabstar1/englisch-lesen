@@ -93,9 +93,15 @@ Danach ist `library/` wieder vollständig. Solange die Klartexte fehlen, weigert
 - `docs/` die Website (wird veröffentlicht), darin `texts/` mit den verschlüsselten Texten und `config.json` mit dem Repo-Namen
 - `library/` Klartexte (bleiben lokal)
 - `queue/` verschlüsselte Einträge vom Handy, die noch übersetzt werden müssen
-- `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `restore`, `queue`, `serve`, `icons`, `fonts`
+- `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `restore`, `queue`, `stamp`, `serve`, `icons`, `fonts`
 - `.claude/skills/add-text/` der Skill
 - `planning/` Spezifikation und Umsetzungsplan
+
+## Warum die Seite nach einer Änderung sofort neu lädt
+
+GitHub Pages weist Browser an, Dateien zehn Minuten zwischenzuspeichern. Ohne Gegenmaßnahme würdest du nach einer Programmänderung bis zu zehn Minuten die alte Fassung sehen. Deshalb hängt `npm run stamp` an jeden Verweis auf ein Modul oder die Stile eine Kennung aus dem Dateiinhalt, etwa `app.js?v=2c4b5999`. Ändert sich der Inhalt, ändert sich die Kennung, und der Browser holt die Datei neu.
+
+Das läuft automatisch bei `npm run encrypt` und `npm run publish` mit. Von Hand nachsehen: `npm run stamp`.
 
 ## Tests
 

@@ -90,7 +90,9 @@ export function icon(S) {
   return encodePng(S, S, paint(S, shapes));
 }
 
-if (pathToFileURL(process.argv[1]).href === import.meta.url) {
+// Nur ausführen, wenn direkt aufgerufen, nicht beim Importieren der Hilfsfunktionen.
+const direktAufgerufen = Boolean(process.argv[1]) && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (direktAufgerufen) {
   const args = process.argv.slice(2);
   const outIndex = args.indexOf("--out");
   const outDir = outIndex >= 0 ? args[outIndex + 1] : join(ROOT, "docs", "icons");

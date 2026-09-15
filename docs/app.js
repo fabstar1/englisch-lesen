@@ -1,8 +1,8 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
-import { segment, annotate } from "./tokenizer.js";
-import { deriveKey, decryptJson, exportKey, importKey } from "./crypto.js";
-import { listQueue, fetchQueueFile } from "./github.js";
-import { openAddSheet } from "./add.js";
+import { segment, annotate } from "./tokenizer.js?v=2c4b5999";
+import { deriveKey, decryptJson, exportKey, importKey } from "./crypto.js?v=2c4b5999";
+import { listQueue, fetchQueueFile } from "./github.js?v=2c4b5999";
+import { openAddSheet } from "./add.js?v=2c4b5999";
 
 const bar = document.getElementById("bar");
 const main = document.getElementById("main");

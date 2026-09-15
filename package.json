@@ -13,12 +13,13 @@
     "words": "node tools/words.mjs",
     "merge": "node tools/merge.mjs",
     "validate": "node tools/validate.mjs",
-    "encrypt": "node tools/encrypt.mjs",
+    "encrypt": "node tools/stamp.mjs && node tools/encrypt.mjs",
     "restore": "node tools/restore.mjs",
     "queue": "node tools/queue.mjs",
+    "stamp": "node tools/stamp.mjs",
     "serve": "node tools/serve.mjs",
     "icons": "node tools/make-icons.mjs",
     "fonts": "node tools/fetch-fonts.mjs",
-    "publish": "node tools/encrypt.mjs && git add docs/texts && git commit -m \"Texte aktualisiert\" && git push"
+    "publish": "node tools/stamp.mjs && node tools/encrypt.mjs && git add docs && git commit -m \"Texte aktualisiert\" && git push"
   }
 }
