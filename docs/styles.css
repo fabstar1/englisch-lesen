@@ -412,3 +412,29 @@ body {
 }
 .addform .error { font-size: 0.95em; line-height: 1.45; }
 .trenner { color: var(--muted); }
+
+/* Löschen von Karten */
+.kartenaktion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-family: var(--sans);
+  font-size: 0.82em;
+}
+.kartenaktion button {
+  font: inherit;
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+}
+.kartenaktion .loeschen:hover { color: var(--error); border-color: var(--error); }
+.kartenaktion .gefahr { background: var(--error); border-color: var(--error); color: #fff; font-weight: 600; }
+.kartenaktion .gefahr:disabled { opacity: 0.6; cursor: wait; }
+.kartenaktion .frage { color: var(--text); }
+.kartenaktion .frage.fehler { color: var(--error); }

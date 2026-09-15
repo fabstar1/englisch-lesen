@@ -1,7 +1,7 @@
 // Formular zum Hinzufügen: eine URL oder ein eingefügter Text landen verschlüsselt
 // in queue/ im Repo. Claude Code übersetzt sie später.
-import { encryptJson } from "./crypto.js?v=2c4b5999";
-import { getToken, setToken, clearToken, putFile, queueFileName, checkToken } from "./github.js?v=2c4b5999";
+import { encryptJson } from "./crypto.js?v=845a2846";
+import { getToken, setToken, clearToken, putFile, queueFileName, checkToken } from "./github.js?v=845a2846";
 
 /** Element bauen, wie in app.js. */
 function el(tag, attrs = {}, children = []) {

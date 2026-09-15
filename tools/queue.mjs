@@ -1,6 +1,7 @@
 // Liest und leert die Warteschlange aus queue/.
 // Aufruf: node tools/queue.mjs list|show <datei>|clear <datei>... [--root DIR]
 //         node tools/queue.mjs clear --all
+//         node tools/queue.mjs apply-deletes   (vorgemerkte Loeschungen ausfuehren)
 import { readdirSync, existsSync, unlinkSync } from "node:fs";
 import { join, basename } from "node:path";
 import { paths, readJson, readPassword, ROOT } from "./lib.mjs";
@@ -14,8 +15,8 @@ const rest = args.filter((a, i) => i !== rootIndex && i !== skip);
 const befehl = rest[0];
 const ziele = rest.slice(1);
 
-if (!["list", "show", "clear"].includes(befehl)) {
-  console.error("Aufruf: node tools/queue.mjs list | show <datei> | clear <datei>... | clear --all");
+if (!["list", "show", "clear", "apply-deletes"].includes(befehl)) {
+  console.error("Aufruf: node tools/queue.mjs list | show <datei> | clear <datei>... | clear --all | apply-deletes");
   process.exit(2);
 }
 
@@ -70,6 +71,36 @@ const key = await deriveKey(password, salt.salt, salt.iterations);
 async function entschluesseln(name) {
   const eintrag = await decryptJson(key, readJson(join(queueDir, name)));
   return { file: name, ...eintrag };
+}
+
+if (befehl === "apply-deletes") {
+  // Vorgemerkte Loeschungen ausfuehren: Klartext entfernen, Marke aufraeumen.
+  // docs/texts/ raeumt danach encrypt.mjs auf, weil der Klartext fehlt.
+  let geloescht = 0;
+  let uebersprungen = 0;
+  for (const name of dateien) {
+    let eintrag;
+    try {
+      eintrag = await entschluesseln(name);
+    } catch (e) {
+      console.error(`${name}: ${e.message}`);
+      continue;
+    }
+    if (eintrag.kind !== "delete") continue;
+    const klartext = join(p.library, `${eintrag.id}.json`);
+    if (existsSync(klartext)) {
+      unlinkSync(klartext);
+      console.log(`Klartext entfernt: ${eintrag.id}${eintrag.title ? ` (${eintrag.title})` : ""}`);
+      geloescht++;
+    } else {
+      console.log(`kein Klartext vorhanden: ${eintrag.id}`);
+      uebersprungen++;
+    }
+    unlinkSync(join(queueDir, name));
+  }
+  if (geloescht + uebersprungen === 0) console.error("Keine Loeschungen vorgemerkt.");
+  else console.log(`${geloescht} geloescht, ${uebersprungen} ohne Klartext. Jetzt npm run encrypt ausfuehren.`);
+  process.exit(0);
 }
 
 if (befehl === "show") {

@@ -15,12 +15,15 @@ Die Seite kann unterwegs Links und Texte in `queue/` ablegen, verschlüsselt. So
 
 1. `git pull` (die Einträge kommen vom Handy über GitHub).
 2. `node tools/queue.mjs list` liefert ein JSON-Array. Leer: dem Nutzer sagen, dass nichts wartet, und aufhören.
-3. Für jeden Eintrag den Ablauf unten ausführen:
+3. **Zuerst die Löschungen.** Enthält die Liste Einträge mit `kind: "delete"`, `node tools/queue.mjs apply-deletes` ausführen. Das entfernt die Klartexte in `library/` und die Löschmarken. Die verschlüsselten Dateien räumt `encrypt.mjs` danach selbst auf, weil der Klartext fehlt.
+4. Für jeden übrigen Eintrag den Ablauf unten ausführen:
    - `kind: "url"` wie eine URL behandeln (Schritt 1 „Beschaffen").
    - `kind: "text"` wie eingefügten Text behandeln. `title` als Titel nehmen; ist er leer, einen passenden aus dem Inhalt bilden. `body` sind die Absätze, getrennt durch Leerzeilen.
    - `addedAt` ist der Zeitpunkt der Erfassung; für `addedAt` im Text trotzdem das heutige Datum verwenden.
-4. Nach jedem fertig verschlüsselten Text `node tools/queue.mjs clear <datei>` aufrufen, damit ein Abbruch nicht alles wiederholt.
-5. Am Ende einmal berichten (wie viele Texte, welche Titel) und fragen: „Committen und pushen?" Bei Ja: `git add docs/texts queue && git commit -m "Warteschlange verarbeitet: <n> Texte" && git push`.
+   - Sieht ein Eintrag offensichtlich nach einem Versehen aus (ein Satz Fehlermeldung, ein leerer Text, ein Zufallsschnipsel), nicht übersetzen, sondern nachfragen und auf Wunsch mit `node tools/queue.mjs clear <datei>` entfernen.
+5. Nach jedem fertig verschlüsselten Text `node tools/queue.mjs clear <datei>` aufrufen, damit ein Abbruch nicht alles wiederholt.
+6. Zum Schluss `npm run encrypt`, damit gelöschte Texte auch aus `docs/texts/` und dem Index verschwinden.
+7. Am Ende einmal berichten (wie viele Texte hinzugekommen, wie viele gelöscht) und fragen: „Committen und pushen?" Bei Ja: `git add docs queue && git commit -m "Warteschlange verarbeitet" && git push`.
 
 Scheitert ein einzelner Eintrag (Paywall, tote URL), diesen Eintrag stehen lassen, den Grund nennen und mit den übrigen weitermachen.
 

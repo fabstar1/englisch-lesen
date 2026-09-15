@@ -1,8 +1,8 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
-import { segment, annotate } from "./tokenizer.js?v=2c4b5999";
-import { deriveKey, decryptJson, exportKey, importKey } from "./crypto.js?v=2c4b5999";
-import { listQueue, fetchQueueFile } from "./github.js?v=2c4b5999";
-import { openAddSheet } from "./add.js?v=2c4b5999";
+import { segment, annotate } from "./tokenizer.js?v=845a2846";
+import { deriveKey, decryptJson, encryptJson, exportKey, importKey } from "./crypto.js?v=845a2846";
+import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken } from "./github.js?v=845a2846";
+import { openAddSheet } from "./add.js?v=845a2846";
 
 const bar = document.getElementById("bar");
 const main = document.getElementById("main");
@@ -306,12 +306,95 @@ async function loadQueue() {
   const eintraege = [];
   for (const datei of dateien) {
     try {
-      eintraege.push({ file: datei.name, ...(await decryptJson(state.key, await fetchQueueFile(datei))) });
+      eintraege.push({ file: datei.name, sha: datei.sha, ...(await decryptJson(state.key, await fetchQueueFile(datei))) });
     } catch {
       /* Eintrag überspringen, etwa nach einem Passwortwechsel */
     }
   }
   state.queue = eintraege;
+}
+
+/** Löschen geht nur mit hinterlegtem Token, sonst bleibt der Knopf weg. */
+function darfSchreiben() {
+  return Boolean(state.config && state.config.repo && getToken());
+}
+
+/** Ids, für die eine Löschung vorgemerkt ist. Diese Texte blendet die Bibliothek aus. */
+function geloeschteIds() {
+  return new Set(state.queue.filter((e) => e.kind === "delete").map((e) => e.id));
+}
+
+/**
+ * Merkt einen veröffentlichten Text zum Löschen vor. Der Eintrag verschwindet sofort
+ * auf allen Geräten; die Dateien selbst entfernt Claude Code beim nächsten /add-text.
+ */
+async function loescheText(id, titel) {
+  const name = queueFileName();
+  const eintrag = { v: 1, kind: "delete", addedAt: new Date().toISOString(), id, title: titel };
+  await putFile(state.config, `queue/${name}`, await encryptJson(state.key, eintrag), "Warteschlange: Text zum Löschen vorgemerkt");
+}
+
+/** Entfernt einen Warteschlangen-Eintrag sofort und endgültig. */
+async function loescheWarteschlangenEintrag(eintrag) {
+  await deleteFile(state.config, `queue/${eintrag.file}`, eintrag.sha, "Warteschlange: Eintrag entfernt");
+}
+
+/**
+ * Baut den Löschen-Knopf einer Karte. Erster Klick fragt nach, zweiter löscht.
+ * `ausfuehren` ist die eigentliche Löschung, `was` erscheint in der Rückfrage.
+ */
+function loeschKnopf(was, ausfuehren) {
+  const leiste = el("div", { class: "kartenaktion" });
+  const zeigeFrage = () => {
+    leiste.replaceChildren(
+      el("span", { class: "frage", text: `${was} löschen?` }),
+      el("button", {
+        type: "button",
+        class: "gefahr",
+        text: "Löschen",
+        onclick: async (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          const knopf = ev.currentTarget;
+          knopf.disabled = true;
+          knopf.textContent = "Lösche…";
+          try {
+            await ausfuehren();
+            await loadQueue();
+            renderLibrary();
+          } catch (e) {
+            leiste.replaceChildren(el("span", { class: "frage fehler", text: e.message }));
+          }
+        },
+      }),
+      el("button", {
+        type: "button",
+        class: "abbrechen",
+        text: "Abbrechen",
+        onclick: (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          zeigeStart();
+        },
+      }),
+    );
+  };
+  const zeigeStart = () => {
+    leiste.replaceChildren(el("button", {
+      type: "button",
+      class: "loeschen",
+      "aria-label": `${was} löschen`,
+      title: "Löschen",
+      text: "Löschen",
+      onclick: (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        zeigeFrage();
+      },
+    }));
+  };
+  zeigeStart();
+  return leiste;
 }
 
 /** Absätze aus eingefügtem Text: an Leerzeilen trennen. */
@@ -352,8 +435,9 @@ function renderQueued(file) {
 
 /** Karten für die Warteschlange unterhalb der fertigen Texte. */
 function queueCards() {
-  if (!state.queue.length) return [];
-  const karten = state.queue.map((e) => {
+  const sichtbar = state.queue.filter((e) => e.kind !== "delete");
+  if (!sichtbar.length) return [];
+  const karten = sichtbar.map((e) => {
     if (e.kind === "text") {
       const titel = e.title || "Ohne Titel";
       return el("a", { class: "card wartend", href: `#/q/${e.file}` }, [
@@ -363,6 +447,7 @@ function queueCards() {
           el("span", { text: formatDate(e.addedAt.slice(0, 10)) }),
         ]),
         el("p", { text: e.body.replace(/\s+/g, " ").slice(0, 140) + (e.body.length > 140 ? "…" : "") }),
+        loeschKnopf("Eintrag", () => loescheWarteschlangenEintrag(e)),
       ]);
     }
     return el("div", { class: "card wartend" }, [
@@ -372,6 +457,7 @@ function queueCards() {
         el("span", { text: formatDate(e.addedAt.slice(0, 10)) }),
       ]),
       el("p", { class: "url", text: e.url }),
+      loeschKnopf("Eintrag", () => loescheWarteschlangenEintrag(e)),
     ]);
   });
   return [el("h2", { class: "abschnitt", text: "Warteschlange" }), ...karten];
@@ -383,7 +469,8 @@ function renderLibrary() {
   state.current = null;
   renderBar();
   main.className = "view library";
-  const texts = (state.index && state.index.texts) || [];
+  const weg = geloeschteIds();
+  const texts = ((state.index && state.index.texts) || []).filter((t) => !weg.has(t.id));
   const cards = texts.map((t) => el("a", { class: "card", href: `#/t/${t.id}` }, [
     el("h2", { text: t.title }),
     el("div", { class: "meta" }, [
@@ -394,8 +481,9 @@ function renderLibrary() {
       el("span", { text: formatDate(t.addedAt) }),
     ]),
     t.summary ? el("p", { text: t.summary }) : null,
+    darfSchreiben() ? loeschKnopf("Text", () => loescheText(t.id, t.title)) : null,
   ]));
-  const leer = cards.length === 0 && state.queue.length === 0;
+  const leer = cards.length === 0 && queueCards().length === 0;
   main.replaceChildren(
     el("h1", { text: "Bibliothek" }),
     ...(leer ? [el("p", { class: "msg", text: "Noch keine Texte. Tippe oben auf + oder lege in Claude Code mit /add-text einen an." })] : cards),

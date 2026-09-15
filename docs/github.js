@@ -72,6 +72,32 @@ export async function fetchQueueFile(file) {
   return r.json();
 }
 
+/** Löscht eine Datei im Repo. `sha` stammt aus listQueue oder einer vorherigen Abfrage. */
+export async function deleteFile(config, path, sha, message) {
+  const token = getToken();
+  if (!token) throw new Error("Kein GitHub-Token hinterlegt.");
+  const branch = config.branch || "main";
+  const url = `${API}/repos/${config.repo}/contents/${path}`;
+  let version = sha;
+  if (!version) {
+    const vorhanden = await fetch(`${url}?ref=${branch}`, { headers: headers(token), cache: "no-store" });
+    if (vorhanden.status === 404) return; // schon weg, nichts zu tun
+    if (!vorhanden.ok) throw new Error(`GitHub meldet Fehler ${vorhanden.status}.`);
+    version = (await vorhanden.json()).sha;
+  }
+  const r = await fetch(url, {
+    method: "DELETE",
+    headers: { ...headers(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ message, sha: version, branch }),
+  });
+  if (r.ok || r.status === 404) return;
+  if (r.status === 401 || r.status === 403) {
+    const pruefung = await checkToken(config);
+    throw new Error(pruefung.text);
+  }
+  throw new Error(`GitHub meldet Fehler ${r.status}.`);
+}
+
 /**
  * Prüft das hinterlegte Token gegen das Repository und sagt genau, was fehlt.
  * Liefert { ok, text } mit einer verständlichen deutschen Erklärung.

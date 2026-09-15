@@ -128,3 +128,56 @@ test("ohne Passwort Exit 2 mit Hinweis", async () => {
 test("unbekannter Befehl ergibt Exit 2", async () => {
   assert.equal(run(await makeRoot(), "quatsch").status, 2);
 });
+
+const DELETE_EINTRAG = { v: 1, kind: "delete", addedAt: "2026-09-15T10:00:00.000Z", id: "2026-09-13-alt", title: "Alter Text" };
+
+/** Wurzel mit Warteschlange und einer Klartextdatei in library/. */
+async function makeRootMitText(eintraege, textIds = []) {
+  const root = await makeRoot(eintraege);
+  mkdirSync(join(root, "library"), { recursive: true });
+  for (const id of textIds) writeFileSync(join(root, "library", `${id}.json`), JSON.stringify({ id }));
+  return root;
+}
+
+test("apply-deletes entfernt den Klartext und die Loeschmarke", async () => {
+  const root = await makeRootMitText([["20260915T100000-dddd.json", DELETE_EINTRAG]], ["2026-09-13-alt"]);
+  const r = run(root, "apply-deletes");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Klartext entfernt: 2026-09-13-alt \(Alter Text\)/);
+  assert.equal(existsSync(join(root, "library", "2026-09-13-alt.json")), false);
+  assert.equal(existsSync(join(root, "queue", "20260915T100000-dddd.json")), false);
+});
+
+test("apply-deletes laesst andere Eintraege und Texte in Ruhe", async () => {
+  const root = await makeRootMitText(
+    [["20260915T100000-dddd.json", DELETE_EINTRAG], ["20260914T083000-aaaa.json", URL_EINTRAG]],
+    ["2026-09-13-alt", "2026-09-14-bleibt"],
+  );
+  assert.equal(run(root, "apply-deletes").status, 0);
+  assert.ok(existsSync(join(root, "library", "2026-09-14-bleibt.json")), "anderer Text bleibt");
+  assert.ok(existsSync(join(root, "queue", "20260914T083000-aaaa.json")), "URL-Eintrag bleibt");
+});
+
+test("apply-deletes ohne Klartext raeumt die Marke trotzdem ab", async () => {
+  const root = await makeRootMitText([["20260915T100000-dddd.json", DELETE_EINTRAG]], []);
+  const r = run(root, "apply-deletes");
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /kein Klartext vorhanden/);
+  assert.equal(existsSync(join(root, "queue", "20260915T100000-dddd.json")), false);
+});
+
+test("apply-deletes ohne Loeschungen meldet das und aendert nichts", async () => {
+  const root = await makeRootMitText([["20260914T083000-aaaa.json", URL_EINTRAG]], ["2026-09-14-bleibt"]);
+  const r = run(root, "apply-deletes");
+  assert.equal(r.status, 0);
+  assert.match(r.stderr, /Keine Loeschungen vorgemerkt/);
+  assert.ok(existsSync(join(root, "library", "2026-09-14-bleibt.json")));
+  assert.ok(existsSync(join(root, "queue", "20260914T083000-aaaa.json")));
+});
+
+test("list zeigt Loeschmarken mit id an", async () => {
+  const root = await makeRoot([["20260915T100000-dddd.json", DELETE_EINTRAG]]);
+  const eintraege = JSON.parse(run(root, "list").stdout);
+  assert.equal(eintraege[0].kind, "delete");
+  assert.equal(eintraege[0].id, "2026-09-13-alt");
+});

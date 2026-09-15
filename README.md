@@ -61,6 +61,19 @@ Von Hand veröffentlichen:
 
     npm run publish
 
+## Texte löschen
+
+Auf jeder Karte in der Bibliothek steht unten **Löschen**. Der erste Tipp fragt nach, der zweite führt es aus. Der Text verschwindet sofort auf allen Geräten.
+
+Endgültig entfernt werden die Dateien beim nächsten `/add-text` in Claude Code. Bis dahin ist der Text nur ausgeblendet. Wer die Löschung vorher zurücknehmen will, entfernt die Löschmarke mit `npm run queue clear --all`.
+
+Ein Eintrag, der noch in der Warteschlange steht, wird sofort und endgültig entfernt.
+
+Von Hand am PC:
+
+    npm run queue apply-deletes
+    npm run encrypt
+
 ## Lokal ansehen
 
     npm run serve
