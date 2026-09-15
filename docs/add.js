@@ -1,7 +1,7 @@
 // Formular zum Hinzufügen: eine URL oder ein eingefügter Text landen verschlüsselt
 // in queue/ im Repo. Claude Code übersetzt sie später.
-import { encryptJson } from "./crypto.js?v=845a2846";
-import { getToken, setToken, clearToken, putFile, queueFileName, checkToken } from "./github.js?v=845a2846";
+import { encryptJson } from "./crypto.js?v=0ae7071f";
+import { getToken, setToken, clearToken, putFile, queueFileName, checkToken } from "./github.js?v=0ae7071f";
 
 /** Element bauen, wie in app.js. */
 function el(tag, attrs = {}, children = []) {
@@ -31,6 +31,24 @@ export function openAddSheet({ key, config, onDone }) {
   const titelFeld = el("input", { type: "text", autocomplete: "off", placeholder: "Titel (darf leer bleiben)" });
   const textFeld = el("textarea", { rows: "7", placeholder: "Text hier einfügen" });
   const speichern = el("button", { class: "btn", type: "submit", text: "Speichern" });
+
+  // Deutsche Quelle: wird zuerst ins Englische übersetzt, dann wie üblich verglost.
+  const uebersetzen = el("input", { type: "checkbox", id: "uebersetzen" });
+  const niveau = el("select", { id: "niveau", hidden: "" }, [
+    el("option", { value: "A2", text: "A2, sehr einfach" }),
+    el("option", { value: "B1", text: "B1, einfach" }),
+    el("option", { value: "B2", text: "B2, mittel" }),
+    el("option", { value: "C1", text: "C1, anspruchsvoll" }),
+  ]);
+  niveau.value = "B2";
+  const uebersetzenBereich = el("div", { class: "schalter" }, [
+    el("label", { for: "uebersetzen" }, [uebersetzen, el("span", { text: " Quelle ist deutsch, ins Englische übersetzen" })]),
+    el("div", { class: "niveauzeile", hidden: "" }, [el("label", { for: "niveau", text: "Englisch-Niveau: " }), niveau]),
+  ]);
+  uebersetzen.addEventListener("change", () => {
+    uebersetzenBereich.querySelector(".niveauzeile").hidden = !uebersetzen.checked;
+    niveau.hidden = !uebersetzen.checked;
+  });
 
   let modus = "url";
   const urlBereich = el("div", {}, [urlFeld]);
@@ -117,6 +135,11 @@ export function openAddSheet({ key, config, onDone }) {
         return;
       }
       const eintrag = { v: 1, kind: modus, addedAt: new Date().toISOString() };
+      if (uebersetzen.checked) {
+        eintrag.translate = true;
+        eintrag.sourceLang = "Deutschen";
+        eintrag.targetLevel = niveau.value;
+      }
       if (modus === "url") {
         const url = urlFeld.value.trim();
         if (!/^https?:\/\/\S+$/.test(url)) {
@@ -140,7 +163,7 @@ export function openAddSheet({ key, config, onDone }) {
         const container = await encryptJson(key, eintrag);
         await putFile(config, `queue/${name}`, container, `Warteschlange: ${modus === "url" ? "Link" : "Text"} hinzugefügt`);
         schliessen();
-        onDone(modus);
+        onDone(modus, uebersetzen.checked);
       } catch (e) {
         status.textContent = e.message;
         speichern.disabled = false;
@@ -151,6 +174,7 @@ export function openAddSheet({ key, config, onDone }) {
     el("div", { class: "tabs" }, [tabUrl, tabText]),
     urlBereich,
     textBereich,
+    uebersetzenBereich,
     tokenBereich,
     speichern,
     status,

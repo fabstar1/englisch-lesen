@@ -62,6 +62,7 @@ for (const name of files) {
     entries.push({
       id, title: text.title, author: text.author, source: text.source, addedAt: text.addedAt,
       level: text.level, summary: text.summary, wordCount: r.wordCount,
+      translatedFrom: text.translatedFrom || "",
     });
   }
 }

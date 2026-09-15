@@ -1,8 +1,8 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
-import { segment, annotate } from "./tokenizer.js?v=845a2846";
-import { deriveKey, decryptJson, encryptJson, exportKey, importKey } from "./crypto.js?v=845a2846";
-import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken } from "./github.js?v=845a2846";
-import { openAddSheet } from "./add.js?v=845a2846";
+import { segment, annotate } from "./tokenizer.js?v=0ae7071f";
+import { deriveKey, decryptJson, encryptJson, exportKey, importKey } from "./crypto.js?v=0ae7071f";
+import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken } from "./github.js?v=0ae7071f";
+import { openAddSheet } from "./add.js?v=0ae7071f";
 
 const bar = document.getElementById("bar");
 const main = document.getElementById("main");
@@ -150,10 +150,12 @@ function renderBar() {
         onclick: () => openAddSheet({
           key: state.key,
           config: state.config,
-          onDone: async (modus) => {
+          onDone: async (modus, wirdUebersetzt) => {
             renderMessage(
               modus === "url" ? "Link gespeichert." : "Text gespeichert.",
-              "Er steht jetzt in der Warteschlange. In Claude Code holt /add-text ihn ab und übersetzt ihn.",
+              wirdUebersetzt
+                ? "Er steht in der Warteschlange und wird zuerst ins Englische übersetzt. Das macht /add-text in Claude Code."
+                : "Er steht jetzt in der Warteschlange. In Claude Code holt /add-text ihn ab und übersetzt ihn.",
             );
             await loadQueue();
             setTimeout(() => { if (!state.current) renderLibrary(); }, 1400);
@@ -427,7 +429,9 @@ function renderQueued(file) {
       el("span", { class: "badge wartet", text: "noch nicht übersetzt" }),
       el("span", { text: formatWords(paragraphs.reduce((n, p) => n + segment(p.text).filter((s) => s.type === "word").length, 0)) }),
     ]),
-    el("p", { class: "hinweis", text: "Die Übersetzungen fehlen noch. Häufige Wörter kommen aus der Grundliste. In Claude Code holt /add-text den Text ab und übersetzt ihn vollständig." }),
+    el("p", { class: "hinweis", text: eintrag.translate
+      ? `Dieser Text ist noch auf Deutsch. In Claude Code überträgt /add-text ihn ins Englische (Niveau ${eintrag.targetLevel || "B2"}) und übersetzt dann jedes Wort.`
+      : "Die Übersetzungen fehlen noch. Häufige Wörter kommen aus der Grundliste. In Claude Code holt /add-text den Text ab und übersetzt ihn vollständig." }),
     ...paragraphs.map((p) => renderParagraph(p, () => false)),
   ]));
   restoreScroll(`q/${file}`);
@@ -443,7 +447,7 @@ function queueCards() {
       return el("a", { class: "card wartend", href: `#/q/${e.file}` }, [
         el("h2", { text: titel }),
         el("div", { class: "meta" }, [
-          el("span", { class: "badge wartet", text: "noch nicht übersetzt" }),
+          el("span", { class: "badge wartet", text: e.translate ? `wird ins Englische übersetzt, ${e.targetLevel || "B2"}` : "noch nicht übersetzt" }),
           el("span", { text: formatDate(e.addedAt.slice(0, 10)) }),
         ]),
         el("p", { text: e.body.replace(/\s+/g, " ").slice(0, 140) + (e.body.length > 140 ? "…" : "") }),
@@ -453,7 +457,7 @@ function queueCards() {
     return el("div", { class: "card wartend" }, [
       el("h2", { text: domainOf(e.url) }),
       el("div", { class: "meta" }, [
-        el("span", { class: "badge wartet", text: "wartet auf Verarbeitung" }),
+        el("span", { class: "badge wartet", text: e.translate ? `wird ins Englische übersetzt, ${e.targetLevel || "B2"}` : "wartet auf Verarbeitung" }),
         el("span", { text: formatDate(e.addedAt.slice(0, 10)) }),
       ]),
       el("p", { class: "url", text: e.url }),
@@ -477,6 +481,7 @@ function renderLibrary() {
       t.author ? el("span", { text: t.author }) : null,
       t.source ? el("span", { text: domainOf(t.source) }) : null,
       el("span", { class: "badge", text: t.level }),
+      t.translatedFrom ? el("span", { class: "badge uebersetzt", text: `aus dem ${t.translatedFrom}` }) : null,
       el("span", { text: formatWords(t.wordCount) }),
       el("span", { text: formatDate(t.addedAt) }),
     ]),
@@ -530,6 +535,7 @@ async function renderText(id) {
       text.author ? el("span", { text: text.author }) : null,
       text.source ? sourceLink(text.source) : null,
       el("span", { class: "badge", text: text.level }),
+      text.translatedFrom ? el("span", { class: "badge uebersetzt", text: `aus dem ${text.translatedFrom} übersetzt` }) : null,
       meta ? el("span", { text: formatWords(meta.wordCount) }) : null,
     ]),
     ...text.paragraphs.map((p) => renderParagraph(p, hasKey)),

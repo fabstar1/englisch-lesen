@@ -438,3 +438,29 @@ body {
 .kartenaktion .gefahr:disabled { opacity: 0.6; cursor: wait; }
 .kartenaktion .frage { color: var(--text); }
 .kartenaktion .frage.fehler { color: var(--error); }
+
+/* Hinweis auf übersetzte Texte */
+.badge.uebersetzt { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+
+/* Schalter für deutsche Quellen */
+.schalter {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 0 12px;
+  background: var(--bg);
+}
+.schalter label { display: flex; align-items: center; gap: 4px; cursor: pointer; line-height: 1.4; }
+.schalter input[type="checkbox"] { width: 20px; height: 20px; margin: 0 4px 0 0; flex: none; accent-color: var(--accent); }
+.niveauzeile { margin: 10px 0 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.niveauzeile label { display: inline; color: var(--muted); font-size: 0.9em; }
+.schalter select {
+  font: inherit;
+  font-size: 16px;
+  padding: 8px 10px;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: inherit;
+}

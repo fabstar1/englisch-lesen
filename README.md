@@ -42,6 +42,16 @@ Unten im Formular gibt es zwei Links. **Token prüfen** sagt dir genau, ob das T
 
 Wichtig: Die Seite im Browser und die Version vom Home-Bildschirm sind für iOS zwei getrennte Ablagen. Das Token musst du in beiden einmal eintragen.
 
+### Deutsche Artikel auf Englisch lesen
+
+Setz im Formular den Haken bei **Quelle ist deutsch, ins Englische übersetzen** und wähl ein Englisch-Niveau von A2 bis C1. Dann wird der deutsche Artikel zuerst ins Englische übertragen und danach wie jeder andere Text Wort für Wort verglost.
+
+So liest du Inhalte, die dich ohnehin interessieren, auf Englisch, und kannst jedes unbekannte Wort antippen. Das Niveau steuert Wortwahl und Satzbau: A2 kurze Hauptsätze und Grundwortschatz, C1 anspruchsvoll und idiomatisch. Voreinstellung ist B2.
+
+In der Bibliothek steht bei solchen Texten „aus dem Deutschen". Die ursprüngliche deutsche Quelle bleibt als Link erhalten.
+
+Am PC geht es auch direkt: `/add-text <deutsche URL>`, ich frage dann nach dem Niveau.
+
 ### Am PC, in Claude Code
 
     /add-text

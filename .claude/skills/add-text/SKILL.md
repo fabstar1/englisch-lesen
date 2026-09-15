@@ -1,11 +1,11 @@
 ---
 name: add-text
-description: Legt einen englischen Text für den Reader an (aus URL, Datei oder eingefügtem Text), übersetzt jedes Wort im Kontext ins Deutsche, prüft und verschlüsselt. Nutzen, wenn der Nutzer einen Text hinzufügen, importieren oder übersetzen lassen will.
+description: Legt einen Text für den Reader an (aus URL, Datei oder eingefügtem Text), übersetzt jedes Wort im Kontext ins Deutsche, prüft und verschlüsselt. Deutsche Quellen werden zuvor ins Englische übertragen. Ohne Argument wird die Warteschlange vom Handy abgearbeitet. Nutzen, wenn der Nutzer einen Text hinzufügen, importieren oder übersetzen lassen will.
 ---
 
 # Text hinzufügen
 
-Eingabe (Argument oder Nachricht des Nutzers): eine URL, ein Dateipfad oder direkt eingefügter Text. Alle Befehle aus dem Projektstamm ausführen. Datum = heute als JJJJ-MM-TT.
+Eingabe (Argument oder Nachricht des Nutzers): eine URL, ein Dateipfad oder direkt eingefügter Text, auf Englisch oder auf Deutsch. Ist die Quelle deutsch, wird sie zuerst ins Englische übertragen (siehe „Deutsche Quellen"); bei einer deutschen Quelle ohne ausdrückliche Ansage einmal kurz nachfragen, ob übersetzt werden soll und auf welchem Niveau. Alle Befehle aus dem Projektstamm ausführen. Datum = heute als JJJJ-MM-TT.
 
 **Ohne Argument: die Warteschlange abarbeiten** (siehe unten). Nur wenn die Warteschlange leer ist und kein Argument kam, nachfragen, was hinzugefügt werden soll.
 
@@ -19,6 +19,7 @@ Die Seite kann unterwegs Links und Texte in `queue/` ablegen, verschlüsselt. So
 4. Für jeden übrigen Eintrag den Ablauf unten ausführen:
    - `kind: "url"` wie eine URL behandeln (Schritt 1 „Beschaffen").
    - `kind: "text"` wie eingefügten Text behandeln. `title` als Titel nehmen; ist er leer, einen passenden aus dem Inhalt bilden. `body` sind die Absätze, getrennt durch Leerzeilen.
+   - **Ist `translate` gesetzt, zuerst ins Englische übertragen** (siehe „Deutsche Quellen" unten), danach normal weiter.
    - `addedAt` ist der Zeitpunkt der Erfassung; für `addedAt` im Text trotzdem das heutige Datum verwenden.
    - Sieht ein Eintrag offensichtlich nach einem Versehen aus (ein Satz Fehlermeldung, ein leerer Text, ein Zufallsschnipsel), nicht übersetzen, sondern nachfragen und auf Wunsch mit `node tools/queue.mjs clear <datei>` entfernen.
 5. Nach jedem fertig verschlüsselten Text `node tools/queue.mjs clear <datei>` aufrufen, damit ein Abbruch nicht alles wiederholt.
@@ -39,6 +40,51 @@ Scheitert ein einzelner Eintrag (Paywall, tote URL), diesen Eintrag stehen lasse
 8. **Prüfen.** `node tools/validate.mjs library/<id>.json`. Fehlende Wörter selbst nachliefern (`library/.parts/<id>/fehlend.json`), mergen, prüfen, bis die letzte Zeile mit `OK:` beginnt. Warnungen zu Wendungen ohne Vorkommen beheben (Schlüssel an den Text anpassen oder Eintrag aus der Datei entfernen).
 9. **Verschlüsseln.** `node tools/encrypt.mjs <id>`. Bei Exit-Code 2 fehlt das Passwort: den Nutzer bitten, im Terminal `npm run setup` auszuführen, danach `npm run encrypt`. Meldet es, dass `library/` leer ist, fehlen die Klartexte (frischer Klon): `npm run restore` holt sie zurück.
 10. **Bericht.** Titel, Wortzahl, Anzahl Einträge, Niveau. Frage: „Committen und pushen?" Bei Ja: `git add docs/texts && git commit -m "Text hinzugefügt: <Titel>" && git push`.
+
+## Deutsche Quellen ins Englische übertragen
+
+Verlangt der Nutzer es (Schalter im Formular, `translate: true` im Warteschlangen-Eintrag, oder er sagt es hier direkt), wird ein deutschsprachiger Text zuerst ins Englische übertragen und danach wie jeder andere englische Text verglost. So liest er einen Inhalt, den er kennt, auf Englisch.
+
+Der Ablauf schiebt sich zwischen Schritt 2 (Extrahieren) und Schritt 3 (Metadaten):
+
+1. Deutschen Text extrahieren wie üblich, mit Überschriften und Absätzen.
+2. Ins Englische übertragen, Absatz für Absatz, Struktur eins zu eins erhalten. Gleiche Anzahl Absätze, gleiche Reihenfolge, Überschriften bleiben Überschriften. Bei langen Texten Unteragenten je Abschnitt einsetzen, jeder bekommt den vollständigen deutschen Text als Kontext.
+3. Zielniveau ist `targetLevel` aus dem Eintrag, sonst B2. Es steuert Wortwahl und Satzbau:
+   - **A2**: kurze Hauptsätze, Grundwortschatz, keine Nebensatzketten. Fachbegriffe im Satz erklären.
+   - **B1**: einfache, klare Sprache, gängige Wörter, höchstens ein Nebensatz je Satz.
+   - **B2**: natürliches Zeitungsenglisch, normale Satzlänge, gängige Redewendungen erlaubt.
+   - **C1**: anspruchsvoll und idiomatisch, so wie ein englischer Muttersprachler den Text geschrieben hätte.
+4. Inhaltstreu bleiben. Nichts hinzuerfinden, nichts weglassen, keine Meinung ändern. Zahlen, Namen und Zitate exakt übernehmen. Deutsche Eigennamen und Institutionen behalten ihren Namen, bei Bedarf mit kurzer Erläuterung im Satz („the Bundestag, Germany's federal parliament").
+5. Den Titel mit übersetzen.
+6. In die Klartextdatei zusätzlich `"translatedFrom": "Deutschen"` schreiben und `level` auf das Zielniveau setzen. `source` bleibt die deutsche Quelle. `summary` wie immer auf Deutsch.
+7. Ab hier normal weiter: Wortliste, Verglosung, Prüfung, Verschlüsselung. Verglost wird der **englische** Text.
+
+Prompt für Übersetzer-Unteragenten:
+
+```
+Du überträgst einen deutschen Text ins Englische für einen Lern-Reader. Der Leser ist deutscher Muttersprachler und will den Inhalt auf Englisch lesen.
+
+Hier ist der vollständige deutsche Text (Absätze nummeriert):
+TEXT
+
+Übertrage die Absätze ABSCHNITT ins Englische.
+
+Zielniveau: NIVEAU. Das bestimmt Wortwahl und Satzbau:
+- A2: kurze Hauptsätze, Grundwortschatz, keine Nebensatzketten.
+- B1: einfache klare Sprache, gängige Wörter, höchstens ein Nebensatz je Satz.
+- B2: natürliches Zeitungsenglisch, normale Satzlänge.
+- C1: anspruchsvoll und idiomatisch.
+
+Regeln:
+- Genau ein englischer Absatz je deutschem Absatz, gleiche Reihenfolge. Überschriften bleiben Überschriften.
+- Inhaltstreu: nichts hinzufügen, nichts weglassen, keine Wertung ändern. Zahlen, Namen und Zitate exakt.
+- Deutsche Eigennamen und Institutionen behalten ihren Namen, bei Bedarf mit drei bis fünf Wörtern Erläuterung im Satz.
+- Natürliches Englisch schreiben, keine wörtliche Übersetzung deutscher Satzstellung.
+
+Schreibe die Datei PFAD als JSON-Array. Jeder Eintrag: { "type": "p" | "h2" | "quote", "text": "..." }. Gültiges JSON, UTF-8, keine Kommentare. Antworte danach nur mit der Anzahl der Absätze.
+```
+
+Nach dem Zusammenführen prüfen: Hat der englische Text gleich viele Absätze wie der deutsche, und stimmen die Typen überein? Sonst nacharbeiten.
 
 ## Format `library/<id>.json`
 
