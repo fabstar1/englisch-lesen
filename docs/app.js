@@ -1,8 +1,8 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
-import { segment, annotate } from "./tokenizer.js?v=0ae7071f";
-import { deriveKey, decryptJson, encryptJson, exportKey, importKey } from "./crypto.js?v=0ae7071f";
-import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken } from "./github.js?v=0ae7071f";
-import { openAddSheet } from "./add.js?v=0ae7071f";
+import { segment, annotate } from "./tokenizer.js?v=e377b79c";
+import { deriveKey, decryptJson, encryptJson, exportKey, importKey } from "./crypto.js?v=e377b79c";
+import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken, setToken, fetchSharedTokenFile } from "./github.js?v=e377b79c";
+import { openAddSheet } from "./add.js?v=e377b79c";
 
 const bar = document.getElementById("bar");
 const main = document.getElementById("main");
@@ -211,8 +211,29 @@ async function boot() {
   refreshQueue();
 }
 
+/**
+ * Holt das geteilte Token aus dem Repo, wenn dieses Gerät noch keines hat.
+ * Ein lokal eingetragenes Token wird nie überschrieben.
+ */
+async function uebernimmGeteiltesToken() {
+  if (!state.key || getToken()) return false;
+  const behaelter = await fetchSharedTokenFile();
+  if (!behaelter) return false;
+  try {
+    const { token } = await decryptJson(state.key, behaelter);
+    if (token) {
+      setToken(token);
+      return true;
+    }
+  } catch {
+    /* mit diesem Passwort nicht lesbar */
+  }
+  return false;
+}
+
 /** Warteschlange nachladen und die Bibliothek auffrischen, falls sie gerade offen ist. */
 async function refreshQueue() {
+  await uebernimmGeteiltesToken();
   await loadQueue();
   if (!state.current && state.key) renderLibrary();
 }

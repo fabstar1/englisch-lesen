@@ -72,6 +72,21 @@ export async function fetchQueueFile(file) {
   return r.json();
 }
 
+// Pfad des geteilten Tokens: im Repo unter docs/, ausgeliefert als token.json.
+export const SHARED_TOKEN_REPO_PATH = "docs/token.json";
+export const SHARED_TOKEN_URL = "token.json";
+
+/** Holt den verschlüsselten Behälter mit dem geteilten Token, oder null. */
+export async function fetchSharedTokenFile() {
+  try {
+    const r = await fetch(SHARED_TOKEN_URL, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
 /** Löscht eine Datei im Repo. `sha` stammt aus listQueue oder einer vorherigen Abfrage. */
 export async function deleteFile(config, path, sha, message) {
   const token = getToken();

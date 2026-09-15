@@ -1,7 +1,10 @@
 // Formular zum Hinzufügen: eine URL oder ein eingefügter Text landen verschlüsselt
 // in queue/ im Repo. Claude Code übersetzt sie später.
-import { encryptJson } from "./crypto.js?v=0ae7071f";
-import { getToken, setToken, clearToken, putFile, queueFileName, checkToken } from "./github.js?v=0ae7071f";
+import { encryptJson, decryptJson } from "./crypto.js?v=e377b79c";
+import {
+  getToken, setToken, clearToken, putFile, queueFileName, checkToken,
+  fetchSharedTokenFile, SHARED_TOKEN_REPO_PATH,
+} from "./github.js?v=e377b79c";
 
 /** Element bauen, wie in app.js. */
 function el(tag, attrs = {}, children = []) {
@@ -69,7 +72,21 @@ export function openAddSheet({ key, config, onDone }) {
 
   // Token-Bereich. Ist schon eines hinterlegt, bleibt das Feld sichtbar, damit ein
   // abgelehntes Token ersetzt werden kann, ohne es vorher löschen zu müssen.
-  const tokenFeld = el("input", { type: "password", autocomplete: "off" });
+  // Bewusst kein type="password": Passwortmanager füllen solche Felder ungefragt
+  // mit gespeicherten Zugangsdaten und überschreiben damit das eingefügte Token.
+  // Verdeckt wird die Eingabe stattdessen per CSS (-webkit-text-security).
+  const tokenFeld = el("input", {
+    type: "text",
+    class: "verdeckt",
+    name: "reader-github-token",
+    autocomplete: "off",
+    autocapitalize: "off",
+    autocorrect: "off",
+    spellcheck: "false",
+    "data-1p-ignore": "true",
+    "data-lpignore": "true",
+    "data-bwignore": "true",
+  });
   const tokenText = el("p", {});
   const tokenBereich = el("div", { class: "tokenbox" }, [
     tokenText,
@@ -83,10 +100,73 @@ export function openAddSheet({ key, config, onDone }) {
     const vorhanden = Boolean(getToken());
     tokenText.textContent = vorhanden
       ? "Auf diesem Gerät ist ein Token hinterlegt. Zum Ersetzen hier ein neues einfügen."
-      : "Zum Speichern braucht dieses Gerät einmalig ein GitHub-Token.";
+      : "Dieses Gerät hat noch kein Token. Entweder unten das geteilte holen oder hier eines einfügen.";
     tokenFeld.placeholder = vorhanden ? "Neues Token (nur zum Ersetzen)" : "github_pat_…";
   };
   tokenZeigen();
+
+  /** Token verschlüsselt im Repo ablegen, damit alle Geräte es bekommen. */
+  const teilen = el("button", {
+    type: "button",
+    class: "link-muted",
+    text: "Für alle Geräte hinterlegen",
+    onclick: async (ev) => {
+      if (tokenFeld.value.trim()) {
+        setToken(tokenFeld.value.trim());
+        tokenFeld.value = "";
+        tokenZeigen();
+      }
+      const token = getToken();
+      if (!token) {
+        status.className = "error";
+        status.textContent = "Erst ein Token eintragen.";
+        return;
+      }
+      ev.target.disabled = true;
+      status.className = "error";
+      status.textContent = "Prüfe und hinterlege…";
+      try {
+        const pruefung = await checkToken(config);
+        if (!pruefung.ok) throw new Error(pruefung.text);
+        await putFile(config, SHARED_TOKEN_REPO_PATH, await encryptJson(key, { v: 1, token }), "Token für alle Geräte hinterlegt");
+        status.className = "erfolg";
+        status.textContent = "Hinterlegt. Andere Geräte übernehmen es beim nächsten Öffnen, sofern dort noch keines liegt.";
+      } catch (e) {
+        status.className = "error";
+        status.textContent = e.message;
+      }
+      ev.target.disabled = false;
+    },
+  });
+
+  /** Geteiltes Token von diesem Gerät aus abrufen und lokal setzen. */
+  const holen = el("button", {
+    type: "button",
+    class: "link-muted",
+    text: "Geteiltes Token holen",
+    onclick: async (ev) => {
+      ev.target.disabled = true;
+      status.className = "error";
+      status.textContent = "Hole…";
+      const behaelter = await fetchSharedTokenFile();
+      if (!behaelter) {
+        status.textContent = "Es ist kein geteiltes Token hinterlegt.";
+        ev.target.disabled = false;
+        return;
+      }
+      try {
+        const { token } = await decryptJson(key, behaelter);
+        setToken(token);
+        tokenZeigen();
+        const pruefung = await checkToken(config);
+        status.className = pruefung.ok ? "erfolg" : "error";
+        status.textContent = pruefung.ok ? `Übernommen. ${pruefung.text}` : pruefung.text;
+      } catch {
+        status.textContent = "Das geteilte Token lässt sich nicht entschlüsseln.";
+      }
+      ev.target.disabled = false;
+    },
+  });
 
   const pruefen = el("button", {
     type: "button",
@@ -179,7 +259,7 @@ export function openAddSheet({ key, config, onDone }) {
     speichern,
     status,
     el("p", { class: "klein", text: "Der Eintrag wird verschlüsselt gespeichert. In Claude Code holt /add-text ihn ab und übersetzt ihn." }),
-    el("div", { class: "footer" }, [pruefen, el("span", { class: "trenner", text: " · " }), abmelden]),
+    el("div", { class: "footer tokenlinks" }, [pruefen, teilen, holen, abmelden]),
   ]);
 
   const blatt = el("div", { class: "sheet", id: "addsheet" }, [

@@ -464,3 +464,19 @@ body {
   background: var(--bg-elev);
   color: inherit;
 }
+
+/* Token-Feld: verdeckt, aber kein Passwortfeld (sonst füllt es der Passwortmanager) */
+.addform input.verdeckt {
+  -webkit-text-security: disc;
+  font-family: var(--sans);
+  letter-spacing: 0.08em;
+}
+
+/* Die vier Token-Links unten im Formular */
+.tokenlinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 14px;
+}
+.tokenlinks button { padding: 8px 2px; }
