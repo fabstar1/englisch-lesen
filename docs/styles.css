@@ -401,3 +401,14 @@ body {
   margin: 0 0 1.6em;
   line-height: 1.5;
 }
+
+/* Ergebnis der Token-Prüfung */
+.addform .erfolg {
+  color: var(--accent);
+  margin: 10px 0 0;
+  min-height: 1.4em;
+  font-size: 0.95em;
+  line-height: 1.45;
+}
+.addform .error { font-size: 0.95em; line-height: 1.45; }
+.trenner { color: var(--muted); }

@@ -73,6 +73,40 @@ export async function fetchQueueFile(file) {
 }
 
 /**
+ * Prüft das hinterlegte Token gegen das Repository und sagt genau, was fehlt.
+ * Liefert { ok, text } mit einer verständlichen deutschen Erklärung.
+ */
+export async function checkToken(config) {
+  const token = getToken();
+  if (!token) return { ok: false, text: "Auf diesem Gerät ist noch kein Token hinterlegt." };
+  if (!/^gh[ps]_|^github_pat_/.test(token)) {
+    return { ok: false, text: "Das sieht nicht nach einem GitHub-Token aus. Es beginnt normalerweise mit github_pat_ oder ghp_." };
+  }
+  let r;
+  try {
+    r = await fetch(`${API}/repos/${config.repo}`, { headers: headers(token), cache: "no-store" });
+  } catch {
+    return { ok: false, text: "Keine Verbindung zu GitHub. Ist das Gerät online?" };
+  }
+  if (r.status === 401) {
+    return { ok: false, text: "GitHub kennt dieses Token nicht. Es ist abgelaufen, widerrufen oder beim Einfügen unvollständig kopiert worden. Bitte ein neues erstellen." };
+  }
+  if (r.status === 404) {
+    return { ok: false, text: `Das Token darf ${config.repo} nicht sehen. Beim Erstellen unter „Repository access“ muss genau dieses Repository ausgewählt sein.` };
+  }
+  if (!r.ok) return { ok: false, text: `GitHub antwortet mit Fehler ${r.status}.` };
+
+  const repo = await r.json();
+  const darfSchreiben = repo.permissions && repo.permissions.push;
+  if (!darfSchreiben) {
+    return { ok: false, text: "Das Token darf lesen, aber nicht schreiben. Es fehlt die Berechtigung „Contents: Read and write“. Bitte im Token unter Permissions ergänzen." };
+  }
+  const ablauf = r.headers.get("github-authentication-token-expiration");
+  const zusatz = ablauf ? ` Gültig bis ${ablauf.slice(0, 10)}.` : "";
+  return { ok: true, text: `Token in Ordnung, Schreibzugriff auf ${config.repo} besteht.${zusatz}` };
+}
+
+/**
  * Schreibt eine Datei ins Repo. Bei einem Konflikt (jemand war schneller)
  * wird einmal mit der neuen Version erneut versucht.
  */
@@ -91,8 +125,11 @@ export async function putFile(config, path, contentObject, message) {
     const r = await fetch(url, { method: "PUT", headers: { ...headers(token), "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (r.ok) return r.json();
     if (r.status === 409 || r.status === 422) continue; // Konflikt: noch einmal
-    if (r.status === 401 || r.status === 403) throw new Error("Token abgelehnt. Stimmen Berechtigung und Ablaufdatum?");
-    if (r.status === 404) throw new Error("Repository nicht gefunden oder Token ohne Zugriff.");
+    if (r.status === 401 || r.status === 403 || r.status === 404) {
+      // Genau sagen, woran es liegt, statt nur „abgelehnt".
+      const pruefung = await checkToken(config);
+      throw new Error(pruefung.text);
+    }
     throw new Error(`GitHub meldet Fehler ${r.status}.`);
   }
   throw new Error("Bitte noch einmal versuchen.");

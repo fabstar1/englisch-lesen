@@ -1,7 +1,7 @@
 // Formular zum Hinzufügen: eine URL oder ein eingefügter Text landen verschlüsselt
 // in queue/ im Repo. Claude Code übersetzt sie später.
 import { encryptJson } from "./crypto.js";
-import { getToken, setToken, clearToken, putFile, queueFileName } from "./github.js";
+import { getToken, setToken, clearToken, putFile, queueFileName, checkToken } from "./github.js";
 
 /** Element bauen, wie in app.js. */
 function el(tag, attrs = {}, children = []) {
@@ -49,10 +49,12 @@ export function openAddSheet({ key, config, onDone }) {
   tabUrl.addEventListener("click", () => wechseln("url"));
   tabText.addEventListener("click", () => wechseln("text"));
 
-  // Token-Bereich: nur sichtbar, wenn noch keines hinterlegt ist
-  const tokenFeld = el("input", { type: "password", autocomplete: "off", placeholder: "github_pat_…" });
+  // Token-Bereich. Ist schon eines hinterlegt, bleibt das Feld sichtbar, damit ein
+  // abgelehntes Token ersetzt werden kann, ohne es vorher löschen zu müssen.
+  const tokenFeld = el("input", { type: "password", autocomplete: "off" });
+  const tokenText = el("p", {});
   const tokenBereich = el("div", { class: "tokenbox" }, [
-    el("p", { text: "Zum Speichern braucht dieses Gerät einmalig ein GitHub-Token." }),
+    tokenText,
     tokenFeld,
     el("p", { class: "klein" }, [
       "Fine-grained Token, nur für dieses eine Repository, Berechtigung „Contents: Read and write“. ",
@@ -60,9 +62,33 @@ export function openAddSheet({ key, config, onDone }) {
     ]),
   ]);
   const tokenZeigen = () => {
-    tokenBereich.hidden = Boolean(getToken());
+    const vorhanden = Boolean(getToken());
+    tokenText.textContent = vorhanden
+      ? "Auf diesem Gerät ist ein Token hinterlegt. Zum Ersetzen hier ein neues einfügen."
+      : "Zum Speichern braucht dieses Gerät einmalig ein GitHub-Token.";
+    tokenFeld.placeholder = vorhanden ? "Neues Token (nur zum Ersetzen)" : "github_pat_…";
   };
   tokenZeigen();
+
+  const pruefen = el("button", {
+    type: "button",
+    class: "link-muted",
+    text: "Token prüfen",
+    onclick: async (ev) => {
+      if (tokenFeld.value.trim()) {
+        setToken(tokenFeld.value.trim());
+        tokenFeld.value = "";
+        tokenZeigen();
+      }
+      ev.target.disabled = true;
+      status.className = "error";
+      status.textContent = "Prüfe…";
+      const ergebnis = await checkToken(config);
+      status.className = ergebnis.ok ? "erfolg" : "error";
+      status.textContent = ergebnis.text;
+      ev.target.disabled = false;
+    },
+  });
 
   const abmelden = el("button", {
     type: "button",
@@ -71,6 +97,7 @@ export function openAddSheet({ key, config, onDone }) {
     onclick: () => {
       clearToken();
       tokenZeigen();
+      status.className = "error";
       status.textContent = "Token gelöscht.";
     },
   });
@@ -128,7 +155,7 @@ export function openAddSheet({ key, config, onDone }) {
     speichern,
     status,
     el("p", { class: "klein", text: "Der Eintrag wird verschlüsselt gespeichert. In Claude Code holt /add-text ihn ab und übersetzt ihn." }),
-    el("div", { class: "footer" }, [abmelden]),
+    el("div", { class: "footer" }, [pruefen, el("span", { class: "trenner", text: " · " }), abmelden]),
   ]);
 
   const blatt = el("div", { class: "sheet", id: "addsheet" }, [

@@ -36,7 +36,11 @@ Beim ersten Mal fragt das Formular nach einem GitHub-Token. Du brauchst es einma
 3. Unter „Permissions" → „Repository permissions" bei **Contents** auf **Read and write** stellen
 4. Ablaufdatum setzen, Token erzeugen, in das Formular einfügen
 
-Das Token liegt danach nur auf diesem Gerät. Wer es erbeutet, kann in dieses eine Repository schreiben, aber deine Texte nicht lesen (sie sind verschlüsselt) und an kein anderes Repository. Im Formular unten kannst du es wieder löschen.
+Das Token liegt danach nur auf diesem Gerät und bleibt dort gespeichert, du musst es nicht jedes Mal neu eingeben. Wer es erbeutet, kann in dieses eine Repository schreiben, aber deine Texte nicht lesen (sie sind verschlüsselt) und an kein anderes Repository.
+
+Unten im Formular gibt es zwei Links. **Token prüfen** sagt dir genau, ob das Token gültig ist, ob es dieses Repository sehen darf und ob es Schreibrechte hat, samt Ablaufdatum. **Token von diesem Gerät löschen** entfernt es wieder. Ein abgelehntes Token ersetzt du, indem du einfach ein neues in das Feld einfügst.
+
+Wichtig: Die Seite im Browser und die Version vom Home-Bildschirm sind für iOS zwei getrennte Ablagen. Das Token musst du in beiden einmal eintragen.
 
 ### Am PC, in Claude Code
 
