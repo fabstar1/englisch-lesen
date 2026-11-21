@@ -1,5 +1,5 @@
 // Gemeinsamer Lesecode: Darstellung der Absätze und Wort-Popup (Bibliothek und öffentliche Leseseite).
-import { absatzTeile } from "./lesen-logik.js?v=4e20fa53";
+import { absatzTeile } from "./lesen-logik.js?v=a5a0dc0d";
 
 export const has = (obj, key) => obj !== null && typeof obj === "object" && Object.hasOwn(obj, key);
 export const isNarrow = () => matchMedia("(max-width: 699px)").matches;

@@ -1,9 +1,9 @@
 // Prüfbare Logik der öffentlichen Leseseite (ohne DOM).
-import { segment, annotate } from "./tokenizer.js?v=4e20fa53";
+import { segment, annotate } from "./tokenizer.js?v=a5a0dc0d";
 
 const LOKAL = new Set(["localhost", "127.0.0.1"]);
 
-/** Nur https (oder http auf localhost für die lokale Probe) und nur mit einem Eintrag aus lesequellen als Anfang. */
+/** Nur https (oder http auf localhost für die lokale Probe); Herkunft und Pfad müssen genau einem Eintrag aus lesequellen entsprechen, die Abfrage ist frei. */
 export function quelleErlaubt(adresse, quellen) {
   if (typeof adresse !== "string" || adresse === "") return false;
   let url;

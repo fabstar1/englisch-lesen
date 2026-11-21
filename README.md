@@ -92,7 +92,7 @@ Von Hand am PC:
 
 Die Lernspiele (spiele.stilno.de) liefern einzelne Texte über eine signierte Adresse. `lesen.html?text=<Adresse>` zeigt sie ohne Passwort, mit Wort-Popup und, wenn der Browser eine englische Stimme hat, einem Vorlese-Knopf je Absatz. Vokabeln des Themas sind gelb hinterlegt.
 
-Erlaubt sind nur Adressen, die mit einem Eintrag aus `docs/config.json` → `lesequellen` beginnen (https, auf localhost auch http); alles andere zeigt „Dieser Link ist ungültig“. Für eine lokale Probe mit einem eigenen Server die Quelle nur in einer nicht committeten Kopie von `config.json` ergänzen. Die Seite hängt nicht an der Bibliothek: `docs/leser.js` (Absätze und Popup) teilen sich beide Seiten, die prüfbare Logik steht in `docs/lesen-logik.js`.
+Erlaubt sind nur Adressen, die ohne den Teil ab `?` genau einem Eintrag aus `docs/config.json` → `lesequellen` entsprechen (https, auf localhost auch http); alles andere zeigt „Dieser Link ist ungültig“. Für eine lokale Probe mit einem eigenen Server die Quelle nur in einer nicht committeten Kopie von `config.json` ergänzen. Die Seite hängt nicht an der Bibliothek: `docs/leser.js` (Absätze und Popup) teilen sich beide Seiten, die prüfbare Logik steht in `docs/lesen-logik.js`.
 
 ## Lokal ansehen
 

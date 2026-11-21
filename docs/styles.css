@@ -25,7 +25,7 @@
     --accent: #d9a76a;
     --accent-soft: rgba(217, 167, 106, 0.18);
     --accent-strong: rgba(217, 167, 106, 0.36);
-  --mark: #5a4a12;
+    --mark: #5a4a12;
     --border: rgba(216, 213, 207, 0.14);
     --error: #ff8a7a;
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
