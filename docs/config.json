@@ -1,5 +1,6 @@
 {
   "repo": "fabstar1/englisch-lesen",
   "branch": "main",
+  "tokenTeilen": false,
   "lesequellen": ["https://spiele.stilno.de/api/text.php"]
 }
