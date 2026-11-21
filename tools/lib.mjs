@@ -1,8 +1,9 @@
 // Gemeinsame Helfer für die Werkzeuge (nur Node).
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { keysOf, countWords, segment, annotate, normalizeKey } from "../docs/tokenizer.js";
+import { TOKEN_TEILEN_MIN } from "../docs/crypto.js";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -147,4 +148,22 @@ export function readPassword(root = ROOT) {
     if (pw.length > 0) return pw;
   }
   throw new Error("Kein Passwort gefunden. Bitte zuerst `npm run setup` ausführen (oder READER_PASSWORD setzen).");
+}
+
+/**
+ * Hält in docs/config.json fest, ob das GitHub-Token für alle Geräte hinterlegt werden darf (erst ab
+ * TOKEN_TEILEN_MIN Zeichen). Bei einem kürzeren Passwort wird ein schon hinterlegtes Token (docs/token.json)
+ * gelöscht. Liefert true, wenn es gelöscht wurde. Ohne config.json passiert nichts.
+ */
+export function tokenTeilenSetzen(root, passwort) {
+  const configDatei = join(root, "docs", "config.json");
+  if (!existsSync(configDatei)) return false;
+  const erlaubt = passwort.length >= TOKEN_TEILEN_MIN;
+  writeJson(configDatei, { ...readJson(configDatei), tokenTeilen: erlaubt });
+  const tokenDatei = join(root, "docs", "token.json");
+  if (!erlaubt && existsSync(tokenDatei)) {
+    unlinkSync(tokenDatei);
+    return true;
+  }
+  return false;
 }

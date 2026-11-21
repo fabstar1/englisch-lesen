@@ -1,6 +1,6 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
 import { segment, annotate } from "./tokenizer.js?v=e377b79c";
-import { deriveKey, decryptJson, encryptJson, exportKey, importKey } from "./crypto.js?v=e377b79c";
+import { deriveKey, decryptJson, encryptJson, exportKey, importKey, tokenTeilenErlaubt } from "./crypto.js?v=e377b79c";
 import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken, setToken, fetchSharedTokenFile } from "./github.js?v=e377b79c";
 import { openAddSheet } from "./add.js?v=e377b79c";
 
@@ -216,7 +216,7 @@ async function boot() {
  * Ein lokal eingetragenes Token wird nie überschrieben.
  */
 async function uebernimmGeteiltesToken() {
-  if (!state.key || getToken()) return false;
+  if (!state.key || getToken() || !tokenTeilenErlaubt(state.config)) return false;
   const behaelter = await fetchSharedTokenFile();
   if (!behaelter) return false;
   try {

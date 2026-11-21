@@ -8,7 +8,7 @@ Texte kommen auf zwei Wegen hinein: unterwegs per **+** auf der Seite selbst, od
 
 Voraussetzungen: Node 22 oder neuer, git, ein GitHub-Konto.
 
-1. Passwort festlegen (mindestens 12 Zeichen empfohlen):
+1. Passwort festlegen (mindestens 4 Zeichen, eine vierstellige PIN geht; ab 12 Zeichen lässt sich das Token für alle Geräte hinterlegen):
 
        npm run setup
 
@@ -38,7 +38,7 @@ Beim ersten Mal fragt das Formular nach einem GitHub-Token. Du brauchst es einma
 
 **Für alle Geräte auf einmal:** Trag das Token auf einem Gerät ein und tippe unten auf **Für alle Geräte hinterlegen**. Es wird dann mit deinem Lesepasswort verschlüsselt im Repo abgelegt (`docs/token.json`). Jedes andere Gerät, das noch kein Token hat, übernimmt es beim nächsten Öffnen automatisch; mit **Geteiltes Token holen** geht es auch sofort. Ein Token, das auf einem Gerät lokal eingetragen ist, wird dabei nie überschrieben.
 
-Der Preis dafür, offen gesagt: Wer dein Lesepasswort knackt, hat damit nicht nur die Texte, sondern auch Schreibrechte auf dem Repo. Nutze diese Bequemlichkeit deshalb nur mit einem langen Passwort ab etwa zwölf Zeichen. Widerrufen kannst du das Token jederzeit in den GitHub-Einstellungen.
+Der Preis dafür, offen gesagt: Wer dein Lesepasswort knackt, hat damit nicht nur die Texte, sondern auch Schreibrechte auf dem Repo. Deshalb gibt es diese Bequemlichkeit nur bei einem Passwort ab 12 Zeichen: Bei einem kürzeren (etwa einer PIN) blendet die Seite **Für alle Geräte hinterlegen** und **Geteiltes Token holen** aus, und `npm run setup` löscht ein schon hinterlegtes `docs/token.json`. Eine PIN schützt die Texte nur gegen Neugierige, nicht gegen jemanden, der die öffentlichen Dateien gezielt durchprobiert. Widerrufen kannst du das Token jederzeit in den GitHub-Einstellungen.
 
 Das Token liegt danach auch auf dem Gerät selbst und bleibt dort gespeichert, du musst es nicht jedes Mal neu eingeben. Wer es erbeutet, kann in dieses eine Repository schreiben, aber deine Texte nicht lesen (sie sind verschlüsselt) und an kein anderes Repository.
 
@@ -96,11 +96,12 @@ Dann `http://localhost:8080` öffnen. (Nur `localhost` oder HTTPS funktionieren,
 
 ## Passwort ändern
 
-    npm run setup
-    npm run encrypt
-    git add docs/texts && git commit -m "Texte neu verschlüsselt" && git push
+Nur am Rechner, auf dem `library/` liegt (dort stehen die Klartexte):
 
-Danach auf jedem Gerät unten in der Bibliothek „Abmelden" wählen und neu anmelden.
+    npm run setup
+    npm run publish
+
+`publish` verschlüsselt alle Texte neu und pusht den ganzen Ordner `docs` (auch `config.json`, in der `setup` festhält, ob das Token geteilt werden darf). Auf jedem anderen Rechner danach `git pull`, `npm run setup` mit dem neuen Passwort und `npm run restore`. Auf jedem Gerät unten in der Bibliothek „Abmelden" wählen und neu anmelden.
 
 ## Einträge korrigieren
 

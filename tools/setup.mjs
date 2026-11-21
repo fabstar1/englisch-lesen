@@ -2,8 +2,8 @@
 // Aufruf: npm run setup
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { paths, writeJson, ROOT } from "./lib.mjs";
-import { randomBytes, toBase64, DEFAULT_ITERATIONS } from "../docs/crypto.js";
+import { paths, writeJson, tokenTeilenSetzen, ROOT } from "./lib.mjs";
+import { randomBytes, toBase64, DEFAULT_ITERATIONS, passwortFehler, TOKEN_TEILEN_MIN } from "../docs/crypto.js";
 
 /** Liest eine Zeile ohne Echo (Passworteingabe). */
 function askHidden(question) {
@@ -44,10 +44,11 @@ const saltFile = join(p.texts, "salt.json");
 const old = existsSync(p.passwordFile) ? readFileSync(p.passwordFile, "utf8").replace(/[\r\n]+$/, "") : null;
 
 try {
-  console.log("Passwort für den Reader festlegen. Mindestens 12 Zeichen empfohlen.");
+  console.log(`Passwort für den Reader festlegen. Mindestens 4 Zeichen (z. B. eine PIN); erst ab ${TOKEN_TEILEN_MIN} Zeichen lässt sich das GitHub-Token für alle Geräte hinterlegen.`);
   const pw1 = await askHidden("Passwort: ");
-  if (pw1.length < 8) {
-    console.error("Zu kurz (mindestens 8 Zeichen).");
+  const fehler = passwortFehler(pw1);
+  if (fehler) {
+    console.error(fehler);
     process.exit(1);
   }
   const pw2 = await askHidden("Passwort wiederholen: ");
@@ -61,6 +62,9 @@ try {
     mkdirSync(p.texts, { recursive: true });
     writeJson(saltFile, { v: 1, kdf: "PBKDF2-SHA256", iterations: DEFAULT_ITERATIONS, salt: toBase64(randomBytes(16)) });
     console.log("Salt angelegt: docs/texts/salt.json");
+  }
+  if (tokenTeilenSetzen(ROOT, pw1)) {
+    console.log("Das hinterlegte Token (docs/token.json) wurde gelöscht: bei diesem kurzen Passwort darf es nicht geteilt werden.");
   }
   if (old !== null && old !== pw1) {
     console.log("Passwort geändert: jetzt `npm run encrypt` ausführen, pushen und auf jedem Gerät neu anmelden.");

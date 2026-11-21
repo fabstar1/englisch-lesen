@@ -1,6 +1,6 @@
 // Formular zum Hinzufügen: eine URL oder ein eingefügter Text landen verschlüsselt
 // in queue/ im Repo. Claude Code übersetzt sie später.
-import { encryptJson, decryptJson } from "./crypto.js?v=e377b79c";
+import { encryptJson, decryptJson, tokenTeilenErlaubt } from "./crypto.js?v=e377b79c";
 import {
   getToken, setToken, clearToken, putFile, queueFileName, checkToken,
   fetchSharedTokenFile, SHARED_TOKEN_REPO_PATH,
@@ -259,7 +259,7 @@ export function openAddSheet({ key, config, onDone }) {
     speichern,
     status,
     el("p", { class: "klein", text: "Der Eintrag wird verschlüsselt gespeichert. In Claude Code holt /add-text ihn ab und übersetzt ihn." }),
-    el("div", { class: "footer tokenlinks" }, [pruefen, teilen, holen, abmelden]),
+    el("div", { class: "footer tokenlinks" }, tokenTeilenErlaubt(config) ? [pruefen, teilen, holen, abmelden] : [pruefen, abmelden]),
   ]);
 
   const blatt = el("div", { class: "sheet", id: "addsheet" }, [

@@ -65,3 +65,18 @@ export async function exportKey(key) {
 export async function importKey(b64) {
   return subtle.importKey("raw", fromBase64(b64), { name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
 }
+
+/* Passwortregeln. Mindestens 4 Zeichen, also geht auch eine vierstellige PIN. Ein kurzes Passwort lässt sich
+   mit den öffentlich liegenden Dateien durch Ausprobieren knacken; für die Texte ist das hinnehmbar, für das
+   GitHub-Token mit Schreibrecht nicht. Deshalb darf das Token erst ab 12 Zeichen für alle Geräte hinterlegt
+   werden. Ob das erlaubt ist, schreibt `npm run setup` als `tokenTeilen` in docs/config.json. */
+export const PASSWORT_MIN = 4;
+export const TOKEN_TEILEN_MIN = 12;
+
+export function passwortFehler(passwort) {
+  return passwort.length < PASSWORT_MIN ? `Zu kurz (mindestens ${PASSWORT_MIN} Zeichen).` : null;
+}
+
+export function tokenTeilenErlaubt(config) {
+  return Boolean(config && config.tokenTeilen === true);
+}
