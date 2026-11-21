@@ -15,7 +15,11 @@ function makeRoot(appExtra = "") {
   mkdirSync(join(root, "docs"), { recursive: true });
   const dateien = {
     "index.html": '<link rel="stylesheet" href="styles.css">\n<script type="module" src="app.js"></script>',
-    "app.js": 'import { segment } from "./tokenizer.js";\nimport { deriveKey } from "./crypto.js";\nimport { listQueue } from "./github.js";\nimport { openAddSheet } from "./add.js";\n' + appExtra,
+    "lesen.html": '<link rel="stylesheet" href="styles.css">\n<script type="module" src="lesen.js"></script>',
+    "app.js": 'import { segment } from "./tokenizer.js";\nimport { deriveKey } from "./crypto.js";\nimport { listQueue } from "./github.js";\nimport { openAddSheet } from "./add.js";\nimport { el } from "./leser.js";\n' + appExtra,
+    "leser.js": 'import { absatzTeile } from "./lesen-logik.js";',
+    "lesen.js": 'import { el } from "./leser.js";\nimport { quelleErlaubt } from "./lesen-logik.js";',
+    "lesen-logik.js": 'import { segment } from "./tokenizer.js";',
     "add.js": 'import { encryptJson } from "./crypto.js";\nimport { getToken } from "./github.js";',
     "github.js": "export const API = 1;",
     "crypto.js": "export const K = 2;",
@@ -29,7 +33,7 @@ const run = (root, ...args) => spawnSync("node", [TOOL, "--root", root, ...args]
 const lies = (root, name) => readFileSync(join(root, "docs", name), "utf8");
 
 test("DATEIEN enthält alle Module und die Stile", () => {
-  for (const n of ["index.html", "app.js", "add.js", "github.js", "crypto.js", "tokenizer.js", "styles.css"]) {
+  for (const n of ["index.html", "lesen.html", "app.js", "add.js", "github.js", "crypto.js", "tokenizer.js", "styles.css", "leser.js", "lesen.js", "lesen-logik.js"]) {
     assert.ok(DATEIEN.includes(n), `${n} fehlt`);
   }
 });
@@ -78,6 +82,20 @@ test("Werkzeug stempelt index.html und alle Module", () => {
   assert.ok(lies(root, "app.js").includes(`"./tokenizer.js?v=${version}"`));
   assert.ok(lies(root, "app.js").includes(`"./github.js?v=${version}"`));
   assert.ok(lies(root, "add.js").includes(`"./crypto.js?v=${version}"`));
+});
+
+test("Werkzeug stempelt die Leseseite und den gemeinsamen Lesecode", () => {
+  const root = makeRoot();
+  const r = run(root);
+  assert.equal(r.status, 0, r.stderr);
+  const version = r.stdout.match(/Version ([0-9a-f]{8})/)[1];
+  assert.ok(lies(root, "lesen.html").includes(`href="styles.css?v=${version}"`));
+  assert.ok(lies(root, "lesen.html").includes(`src="lesen.js?v=${version}"`));
+  assert.ok(lies(root, "app.js").includes(`"./leser.js?v=${version}"`));
+  assert.ok(lies(root, "lesen.js").includes(`"./leser.js?v=${version}"`));
+  assert.ok(lies(root, "lesen.js").includes(`"./lesen-logik.js?v=${version}"`));
+  assert.ok(lies(root, "leser.js").includes(`"./lesen-logik.js?v=${version}"`));
+  assert.ok(lies(root, "lesen-logik.js").includes(`"./tokenizer.js?v=${version}"`));
 });
 
 test("zweiter Lauf ändert nichts mehr", () => {

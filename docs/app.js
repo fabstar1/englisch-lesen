@@ -1,8 +1,9 @@
 // Reader: Passwort-Ansicht, Bibliothek, Leseansicht, Popup.
-import { segment, annotate } from "./tokenizer.js?v=e377b79c";
-import { deriveKey, decryptJson, encryptJson, exportKey, importKey, tokenTeilenErlaubt } from "./crypto.js?v=e377b79c";
-import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken, setToken, fetchSharedTokenFile } from "./github.js?v=e377b79c";
-import { openAddSheet } from "./add.js?v=e377b79c";
+import { segment } from "./tokenizer.js?v=4e20fa53";
+import { deriveKey, decryptJson, encryptJson, exportKey, importKey, tokenTeilenErlaubt } from "./crypto.js?v=4e20fa53";
+import { listQueue, fetchQueueFile, putFile, deleteFile, queueFileName, getToken, setToken, fetchSharedTokenFile } from "./github.js?v=4e20fa53";
+import { openAddSheet } from "./add.js?v=4e20fa53";
+import { has, el, renderParagraph, popupEinrichten } from "./leser.js?v=4e20fa53";
 
 const bar = document.getElementById("bar");
 const main = document.getElementById("main");
@@ -34,28 +35,11 @@ const state = {
   texts: new Map(), // id -> entschlüsselter Text (nur im Speicher)
   fontSize: 19,
   current: null, // { id, title, glosses } in der Leseansicht
-  popup: null, // { span } des gerade geöffneten Popups
   config: null, // docs/config.json, fehlt = kein Hinzufügen möglich
   queue: [], // entschlüsselte Warteschlangen-Einträge, je { file, kind, ... }
 };
 
-const has = (obj, key) => obj !== null && typeof obj === "object" && Object.hasOwn(obj, key);
-const isNarrow = () => matchMedia("(max-width: 699px)").matches;
-
 // ---------- Hilfen ----------
-
-/** Element bauen: el("a", { class: "x", href: "#", text: "Hi", onclick: fn }, [kinder]) */
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") node.className = v;
-    else if (k === "text") node.textContent = v;
-    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
-    else node.setAttribute(k, v);
-  }
-  for (const c of [].concat(children)) if (c !== null && c !== undefined) node.append(c);
-  return node;
-}
 
 function domainOf(source) {
   try {
@@ -258,7 +242,7 @@ function logout() {
 
 function renderPassword(hint = "") {
   state.current = null;
-  closePopup();
+  pop.close();
   renderBar();
   const input = el("input", { type: "password", id: "password", autocomplete: "current-password", placeholder: "Passwort" });
   const error = el("p", { class: "error", text: hint });
@@ -296,7 +280,7 @@ function renderPassword(hint = "") {
 
 function renderMessage(title, detail = "") {
   state.current = null;
-  closePopup();
+  pop.close();
   renderBar();
   main.className = "view";
   main.replaceChildren(el("div", { class: "msg" }, [el("p", { text: title }), detail ? el("p", { text: detail }) : null]));
@@ -309,7 +293,7 @@ function route() {
     renderPassword();
     return;
   }
-  closePopup();
+  pop.close();
   const t = location.hash.match(/^#\/t\/([A-Za-z0-9-]+)$/);
   if (t) return renderText(t[1]);
   const q = location.hash.match(/^#\/q\/([A-Za-z0-9.-]+)$/);
@@ -565,20 +549,6 @@ async function renderText(id) {
   restoreScroll(id);
 }
 
-function renderParagraph(p, hasKey) {
-  const frag = document.createDocumentFragment();
-  for (const seg of annotate(segment(p.text), hasKey)) {
-    if (seg.type === "word" || seg.type === "phrase") {
-      frag.append(el("span", { class: seg.type === "phrase" ? "w phrase" : "w", "data-key": seg.key, text: seg.text }));
-    } else {
-      frag.append(seg.text);
-    }
-  }
-  if (p.type === "h2") return el("h2", {}, [frag]);
-  if (p.type === "quote") return el("blockquote", {}, [el("p", {}, [frag])]);
-  return el("p", {}, [frag]);
-}
-
 // ---------- Leseposition ----------
 
 let scrollTimer = 0;
@@ -601,88 +571,12 @@ function restoreScroll(id) {
 }
 
 // ---------- Popup ----------
-// Öffnet nur per Klick oder Tippen, auf allen Geräten gleich. Kein Hover.
+// Der Popup-Code liegt in leser.js (gemeinsam mit der öffentlichen Leseseite).
 
-function lookup(key) {
+const pop = popupEinrichten(main, popup, (key) => {
   if (state.current && has(state.current.glosses, key)) return state.current.glosses[key];
   if (has(state.base, key)) return state.base[key];
   return null;
-}
-
-function fillPopup(span) {
-  const g = lookup(span.dataset.key);
-  popup.replaceChildren();
-  if (isNarrow()) popup.append(el("button", { class: "pop-close", "aria-label": "Schließen", onclick: closePopup, text: "×" }));
-  const head = el("div", { class: "pop-head" }, [el("span", { class: "pop-word", text: span.textContent })]);
-  if (g && g.base) head.append(el("span", { class: "pop-base", text: `(${g.base})` }));
-  if (g && g.pos) head.append(el("span", { class: "badge", text: g.pos }));
-  popup.append(head);
-  if (g) {
-    popup.append(el("div", { class: "pop-de", text: g.de }));
-    if (g.note) popup.append(el("div", { class: "pop-note", text: g.note }));
-  } else {
-    popup.append(el("div", { class: "pop-de muted", text: "Keine Übersetzung gespeichert." }));
-  }
-}
-
-function positionPopup(span) {
-  const r = span.getBoundingClientRect();
-  const pw = popup.offsetWidth;
-  const ph = popup.offsetHeight;
-  const margin = 8;
-  const gap = 8;
-  let left = r.left + r.width / 2 - pw / 2;
-  left = Math.max(margin, Math.min(left, window.innerWidth - pw - margin));
-  let top = r.bottom + gap;
-  if (top + ph > window.innerHeight - margin && r.top - gap - ph >= margin) top = r.top - gap - ph;
-  popup.style.left = `${Math.round(left)}px`;
-  popup.style.top = `${Math.round(top)}px`;
-}
-
-function openPopup(span) {
-  if (state.popup && state.popup.span !== span) state.popup.span.classList.remove("active");
-  fillPopup(span);
-  span.classList.add("active");
-  state.popup = { span };
-  popup.hidden = false;
-  if (isNarrow()) {
-    popup.style.left = "";
-    popup.style.top = "";
-  } else {
-    positionPopup(span);
-  }
-}
-
-function closePopup() {
-  if (!state.popup) return;
-  state.popup.span.classList.remove("active");
-  state.popup = null;
-  popup.hidden = true;
-}
-
-main.addEventListener("click", (ev) => {
-  const span = ev.target.closest(".w");
-  if (!span) return;
-  ev.stopPropagation();
-  // Dasselbe Wort noch einmal antippen schließt das Popup.
-  if (state.popup && state.popup.span === span) {
-    closePopup();
-    return;
-  }
-  openPopup(span);
-});
-
-document.addEventListener("click", (ev) => {
-  if (!state.popup || popup.contains(ev.target)) return;
-  closePopup();
-});
-
-document.addEventListener("keydown", (ev) => {
-  if (ev.key === "Escape") closePopup();
-});
-
-window.addEventListener("resize", () => {
-  if (state.popup && !isNarrow()) positionPopup(state.popup.span);
 });
 
 window.addEventListener("hashchange", route);

@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 import { ROOT } from "./lib.mjs";
 
 // Dateien, deren Inhalt in die Kennung eingeht und in denen Verweise gestempelt werden.
-export const DATEIEN = ["index.html", "app.js", "add.js", "github.js", "crypto.js", "tokenizer.js", "styles.css"];
+export const DATEIEN = ["index.html", "lesen.html", "app.js", "add.js", "github.js", "crypto.js", "tokenizer.js", "styles.css", "leser.js", "lesen.js", "lesen-logik.js"];
 
 /** Entfernt vorhandene Kennungen, damit die Berechnung nicht von sich selbst abhängt. */
 export const ohneStempel = (text) => text.replace(/\?v=[0-9a-f]{8}/g, "");
@@ -25,7 +25,7 @@ export function berechneVersion(inhalte) {
 export function stempeln(text, version) {
   let out = ohneStempel(text);
   for (const name of DATEIEN) {
-    if (name === "index.html") continue;
+    if (name.endsWith(".html")) continue; // Seiten werden nur gestempelt, niemand verweist auf sie
     // ./name.js  oder  "name.js"  in import-Anweisungen, src- und href-Attributen
     out = out.replaceAll(`./${name}"`, `./${name}?v=${version}"`);
     out = out.replaceAll(`"${name}"`, `"${name}?v=${version}"`);

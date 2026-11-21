@@ -1,4 +1,5 @@
 {
   "repo": "fabstar1/englisch-lesen",
-  "branch": "main"
+  "branch": "main",
+  "lesequellen": ["https://spiele.stilno.de/api/text.php"]
 }

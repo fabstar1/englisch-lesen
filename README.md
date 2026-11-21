@@ -88,6 +88,12 @@ Von Hand am PC:
     npm run queue apply-deletes
     npm run encrypt
 
+## Lesen über einen Link
+
+Die Lernspiele (spiele.stilno.de) liefern einzelne Texte über eine signierte Adresse. `lesen.html?text=<Adresse>` zeigt sie ohne Passwort, mit Wort-Popup und, wenn der Browser eine englische Stimme hat, einem Vorlese-Knopf je Absatz. Vokabeln des Themas sind gelb hinterlegt.
+
+Erlaubt sind nur Adressen, die mit einem Eintrag aus `docs/config.json` → `lesequellen` beginnen (https, auf localhost auch http); alles andere zeigt „Dieser Link ist ungültig“. Für eine lokale Probe mit einem eigenen Server die Quelle nur in einer nicht committeten Kopie von `config.json` ergänzen. Die Seite hängt nicht an der Bibliothek: `docs/leser.js` (Absätze und Popup) teilen sich beide Seiten, die prüfbare Logik steht in `docs/lesen-logik.js`.
+
 ## Lokal ansehen
 
     npm run serve
@@ -118,7 +124,7 @@ Danach ist `library/` wieder vollständig. Solange die Klartexte fehlen, weigert
 
 ## Ordner
 
-- `docs/` die Website (wird veröffentlicht), darin `texts/` mit den verschlüsselten Texten und `config.json` mit dem Repo-Namen
+- `docs/` die Website (wird veröffentlicht), darin `texts/` mit den verschlüsselten Texten und `config.json` mit dem Repo-Namen und den erlaubten Lesequellen
 - `library/` Klartexte (bleiben lokal)
 - `queue/` verschlüsselte Einträge vom Handy, die noch übersetzt werden müssen
 - `tools/` Skripte: `setup`, `words`, `merge`, `validate`, `encrypt`, `restore`, `queue`, `stamp`, `serve`, `icons`, `fonts`
